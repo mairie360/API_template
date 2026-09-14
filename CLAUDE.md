@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 shared pattern changes there (lib version, `main.rs` bootstrap, Docker/compose files, CI
 workflow, Renovate config), port it here. The crate is `api_template`; every spot a new API must
 rename carries a `change api name` / `change port` marker, on the same line (or on the line just
-above in the `Dockerfile`s, which forbid trailing comments); wiring of the sample resource carries
-`change example resource`. Any API name, port or URL added to the template must get one.
+above in the `Dockerfile`s, which forbid trailing comments). Any API name, port or URL added to the
+template must get one. The template ships no business endpoint on purpose (`v1` is an empty scope).
 
 ## Commands
 
@@ -31,13 +31,12 @@ gate, `endpoints/`, `main.rs`, `lib.rs` excluded), `cargo open_api` (OpenAPI JSO
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
   (`SELECT to_jsonb(t) FROM (...) t`).
-- The `example` resource (`GET /api/v1/example/{id}` reading `users`) exists only to show the
-  pattern end to end and keep the test suite / coverage gate non-empty.
 
 ## CI and Renovate
 
 `.github/workflows/cicd.yml` calls `mairie360/CICD` `APIs_cicd.yml` but only on
 `workflow_dispatch` in the template (add `push:` in a real API). `renovate.json` deliberately
 overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`) with
-`ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails; branch
-protection requiring status checks would still block that.
+`ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails. That is
+template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
+and the README tells new APIs to swap it back. Don't propagate the automerge-all file to siblings.

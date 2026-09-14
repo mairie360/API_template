@@ -18,8 +18,7 @@ grep -rn "change api name\|change port" --exclude-dir=target --exclude-dir=.git 
 
 `Cargo.lock` contient aussi le nom du crate : il est régénéré au premier `cargo build`.
 
-Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs`,
-`tests/queries/**`, `Dockerfile`, `development.Dockerfile`, `entrypoint.sh`, `nginx.conf`,
+Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs`, `Dockerfile`, `development.Dockerfile`, `entrypoint.sh`, `nginx.conf`,
 `docker-compose.yml`, `docker-compose-security.yml`, `docker-compose-performance.yml`,
 `.github/workflows/cicd.yml`.
 
@@ -28,14 +27,39 @@ Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs
 Dans `.github/workflows/cicd.yml`, ajouter `push:` sous `on:` et créer les variables
 `POSTMAN_<API>_API_COLLECTION_ID` / `POSTMAN_<API>_API_ENV_ID` sur le repo.
 
-### 3. Remplacer la ressource d'exemple
+### 3. Remettre la configuration Renovate standard
 
-`src/endpoints/v1/example/` (endpoint `GET /api/v1/example/{id}`), `src/database/example/` et
-`tests/queries/example/` montrent la structure attendue ; les renommer ou les supprimer. Les
-endroits qui les branchent (modules, route `/example`, doc OpenAPI) portent le marqueur
-`change example resource`.
+⚠️ Le `renovate.json` du template fusionne **toutes** les mises à jour sans condition, même quand
+la CI échoue. Ce comportement est réservé au template : dans une vraie API, remplacer tout le
+fichier par la configuration commune aux autres APIs :
 
-### 4. Documenter
+```json
+{
+  "extends": [
+    "github>mairie360/renovate-config"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/cicd\\.yml$"],
+      "matchStrings": [
+        "cicd_version:\\s*(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "mairie360/CICD",
+      "datasourceTemplate": "github-tags"
+    }
+  ]
+}
+```
+
+### 4. Ajouter les endpoints
+
+Le template ne contient aucun endpoint métier. Suivre la structure des autres APIs :
+`src/endpoints/v1/<ressource>/<op>/` (`mod.rs`, `endpoint.rs`, `view.rs`, `doc.rs`, branchés dans
+`v1/mod.rs` et `v1/doc.rs`), `src/database/<ressource>/<op>/view.rs` et les tests associés dans
+`tests/queries/`.
+
+### 5. Documenter
 
 Remplir `API.md` et adapter `CLAUDE.md`.
 
@@ -54,5 +78,6 @@ docker compose up --watch                    # stack de dev (Postgres, Liquibase
 
 ## Renovate
 
-`renovate.json` fusionne automatiquement **toutes** les mises à jour (majeures comprises, 0.x et
-Dockerfile de prod inclus) sans attendre ni exiger une CI verte.
+Sur ce repo uniquement, `renovate.json` fusionne automatiquement **toutes** les mises à jour
+(majeures comprises, 0.x et Dockerfile de prod inclus) sans attendre ni exiger une CI verte.
+Voir l'étape 3 pour la configuration à utiliser dans une vraie API.

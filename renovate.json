@@ -12,7 +12,7 @@
   "prCreation": "immediate",
   "packageRules": [
     {
-      "description": "Aucune restriction : tout est automergé (majeures, 0.x, Dockerfile de prod), même si la CI échoue",
+      "description": "TEMPLATE UNIQUEMENT : tout est automergé (majeures, 0.x, Dockerfile de prod), même si la CI échoue. À remplacer dans une vraie API (voir README, étape 3)",
       "matchPackageNames": [
         "*"
       ],
