@@ -1,18 +1,20 @@
-# --- Étape 1 : Build ---
-FROM rust:1.88-slim AS builder
+FROM rust:1.98-slim-bookworm AS builder
 
-RUN apt update && apt install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
 COPY . .
 RUN cargo build --release
 
-# --- Étape 2 : Runtime (Ultra-light) ---
 FROM gcr.io/distroless/cc-debian12
 WORKDIR /app
 
-# On copie le binaire compilé
-COPY --from=builder /usr/src/app/target/release/core_api /app/core-api
+# change api name
+COPY --from=builder /usr/src/app/target/release/api_template /app/template-api
 
-# Pas de shell, pas de root, sécurité et performance max
-CMD ["/app/core-api"]
+# change api name
+CMD ["/app/template-api"]

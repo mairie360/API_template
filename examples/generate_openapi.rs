@@ -1,10 +1,9 @@
-use core_api::swagger::ApiDoc;
+use api_template::endpoints::swagger::ApiDoc; // change api name
 use utoipa::OpenApi;
 
 fn main() {
-    let openapi_yaml = ApiDoc::openapi()
-        .to_yaml()
-        .expect("Failed to generate YAML");
-
-    println!("{}", openapi_yaml);
+    match ApiDoc::openapi().to_json() {
+        Ok(json) => println!("{}", json),
+        Err(err) => eprintln!("Erreur lors de la génération du JSON : {}", err),
+    }
 }

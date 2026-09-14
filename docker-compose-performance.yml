@@ -129,17 +129,15 @@ services:
       retries: 5
       start_period: 90s
 
-  nginx:
-    image: nginx:1.29.1-bookworm
-    restart: always
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - "80:80"
+  k6-perf-test:
+    image: grafana/k6:latest
     networks:
       - backend
+    volumes:
+      - ./load-test.js:/load-test.js
+    command: ["run", "/load-test.js"]
+    environment:
+      - BASE_URL=http://template:3000 # change api name and port
     depends_on:
       template: # change api name
         condition: service_healthy
-    extra_hosts:
-      - "template.development.mairie360.fr:127.0.0.1" # change api name
