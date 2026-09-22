@@ -21,7 +21,8 @@ gate, `endpoints/`, `main.rs`, `lib.rs` excluded), `cargo open_api` (OpenAPI JSO
 
 ## Layout
 
-- `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*`, serves Swagger UI at
+- `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
+  `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
   `/swagger-ui/` (spec at `/api-docs/openapi.json`, also the ZAP scan target), public `/health` and `/`, and mounts
   `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
 - `src/endpoints/` mirrors the URL path: each node has `mod.rs` (`config()`), and leaves have

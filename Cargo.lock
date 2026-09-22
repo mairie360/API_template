@@ -242,10 +242,12 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "mairie360_api_lib",
+ "percent-encoding",
  "serde",
  "serde_json",
  "serial_test",
  "tokio",
+ "url",
  "utoipa",
  "utoipa-swagger-ui",
 ]
