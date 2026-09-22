@@ -19,7 +19,7 @@ grep -rn "change api name\|change port" --exclude-dir=target --exclude-dir=.git 
 `Cargo.lock` contient aussi le nom du crate : il est régénéré au premier `cargo build`.
 
 Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs`, `Dockerfile`, `development.Dockerfile`, `entrypoint.sh`, `nginx.conf`,
-`docker-compose.yml`, `docker-compose-security.yml`, `docker-compose-performance.yml`,
+`tests/pg_url_test.rs`, `docker-compose.yml`, `docker-compose-security.yml`, `docker-compose-performance.yml`,
 `.github/workflows/cicd.yml`.
 
 ### 2. Activer la CI

@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4"
 mairie360_api_lib = "1.2.0"
+percent-encoding = "2.3"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tokio = { version = "1.46.0", features = ["full"] }
@@ -14,6 +15,7 @@ utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
 
 [dev-dependencies]
 serial_test = "4.0.0"
+url = "2.5"
 
 
 [profile.dev]
