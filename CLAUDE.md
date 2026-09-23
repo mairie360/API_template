@@ -19,6 +19,15 @@ Same aliases as the siblings (`.cargo/config.toml`): `cargo lint_check`, `cargo 
 via `mairie360_api_lib::test_setup::queries_setup::get_shared_db`), `cargo cov_test` (60 % line
 gate, `endpoints/`, `main.rs`, `lib.rs` excluded), `cargo open_api` (OpenAPI JSON on stdout).
 
+End-to-end harnesses (what CI runs on `main` after the dev release; each spins up its own stack from a
+standalone compose file, so env/image changes must be mirrored in all of them): `./integration_test.sh`
+(`docker-compose-integration.yml`, newman replaying `tests/postman/collection.json` with
+`tests/postman/environment.json`), `./security_test.sh` (ZAP), `./performance_test.sh` (k6). The
+collection is a Postman v2.1 export; its pre-request script forges HS256 JWTs with the stack's
+`JWT_SECRET` (`jwt_admin` for the seeded Admin, `jwt_agent` for user 2 from `init-test.sql`, plus a
+wrong-secret and an expired token), so a new API only adds requests for its endpoints. `baseUrl` is
+overridden with `--env-var` by the compose file; the committed default targets `localhost:3000`.
+
 ## Layout
 
 - `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
@@ -36,7 +45,8 @@ gate, `endpoints/`, `main.rs`, `lib.rs` excluded), `cargo open_api` (OpenAPI JSO
 ## CI and Renovate
 
 `.github/workflows/cicd.yml` calls `mairie360/CICD` `APIs_cicd.yml` but only on
-`workflow_dispatch` in the template (add `push:` in a real API). `renovate.json` deliberately
+`workflow_dispatch` in the template (add `push:` in a real API). Its `integration_tests` job runs
+`./integration_test.sh`; no Postman variable or secret is needed. `renovate.json` deliberately
 overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`) with
 `ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails. That is
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
