@@ -28,6 +28,14 @@ collection is a Postman v2.1 export; its pre-request script forges HS256 JWTs wi
 wrong-secret and an expired token), so a new API only adds requests for its endpoints. `baseUrl` is
 overridden with `--env-var` by the compose file; the committed default targets `localhost:3000`.
 
+The ZAP scan is authenticated and blocking: `security-scan` waits for the `seeder`, injects a static admin JWT
+(`sub=1`, signed with `JWT_SECRET=b"secret"`, see the comment in `docker-compose-security.yml`) on every request
+and fails on any alert not set to `IGNORE` / `OUTOFSCOPE` in `.zap/rules.tsv` (no `-I`; the file is the same in
+every API). `-O http://<service>:<port>` is required, the spec's `servers` being unreachable from the ZAP
+container. ZAP fuzzes every field from the spec examples, so an example that does not deserialize, a `500`
+(value too long for its column, NUL byte, unmapped constraint violation) or a `<script>` echoed back fails the
+job: fix the example or validate the input, don't silence the alert.
+
 ## Layout
 
 - `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
@@ -38,6 +46,11 @@ overridden with `--env-var` by the compose file; the committed default targets `
   `endpoint.rs` (handler + `trigger_*` + error enum implementing `ResponseError` and
   `From<ApiLibError>`), `view.rs` (DTOs, private fields + getters) and `doc.rs` (utoipa), nested
   up to `endpoints/swagger.rs::ApiDoc` (prefix `/api/v1`).
+- `src/endpoints/validation.rs`: request views with text fields implement `Validate` (length matching the
+  Postgres column, no control character, no `<` / `>` in displayed labels) and handlers extract them with
+  `ValidatedJson` / `ValidatedQuery` instead of `web::Json` / `web::Query`, which answer `400` naming the field.
+  Map the lib's `DbError::ForeignKeyViolation` / `UniqueViolation` to `4xx`, never `500`. Responses carry
+  `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
   (`SELECT to_jsonb(t) FROM (...) t`).
