@@ -20,12 +20,15 @@ grep -rn "change api name\|change port" --exclude-dir=target --exclude-dir=.git 
 
 Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs`, `Dockerfile`, `development.Dockerfile`, `entrypoint.sh`, `nginx.conf`,
 `tests/pg_url_test.rs`, `docker-compose.yml`, `docker-compose-security.yml`, `docker-compose-performance.yml`,
-`.github/workflows/cicd.yml`.
+`docker-compose-integration.yml`, `tests/postman/environment.json`, `.github/workflows/cicd.yml`.
 
-### 2. Activer la CI
+### 2. Enable CI
 
-Dans `.github/workflows/cicd.yml`, ajouter `push:` sous `on:` et créer les variables
-`POSTMAN_<API>_API_COLLECTION_ID` / `POSTMAN_<API>_API_ENV_ID` sur le repo.
+In `.github/workflows/cicd.yml`, add `push:` under `on:`. Integration tests need no Postman
+account: the `integration_tests` job runs `./integration_test.sh`, which replays
+`tests/postman/collection.json` with newman inside `docker-compose-integration.yml`. Grow that
+collection with the API's endpoints (the template only checks `/`, `/health`, the OpenAPI document
+and the JWT gate; its pre-request script already forges HS256 JWTs with the stack's `JWT_SECRET`).
 
 ### 3. Remettre la configuration Renovate standard
 
@@ -72,8 +75,9 @@ cargo test            # nécessite Docker + accès ghcr.io/mairie360
 cargo cov_test        # llvm-cov, seuil 60 % de lignes (hors endpoints/, main.rs, lib.rs)
 cargo open_api > openapi.json && npx orval   # client TypeScript dans generated/
 docker compose up --watch                    # stack de dev (Postgres, Liquibase, Redis, nginx)
-./security_test.sh    # scan OWASP ZAP
-./performance_test.sh # test de charge k6
+./integration_test.sh # newman replays tests/postman/collection.json (CI `integration_tests` job)
+./security_test.sh    # OWASP ZAP scan
+./performance_test.sh # k6 load test
 ```
 
 ## Renovate

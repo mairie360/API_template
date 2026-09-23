@@ -11,14 +11,12 @@ permissions:
 
 jobs:
   APIs-cicd:
-    uses: mairie360/CICD/.github/workflows/APIs_cicd.yml@v2.2.0
+    uses: mairie360/CICD/.github/workflows/APIs_cicd.yml@v3.0.0
     permissions:
       contents: write
       packages: write
       id-token: write
     with:
-      postman_collection: ${{ vars.POSTMAN_TEMPLATE_API_COLLECTION_ID }} # change api name
-      postman_environment: ${{ vars.POSTMAN_TEMPLATE_API_ENV_ID }} # change api name
       package_name: template-api # change api name
-      cicd_version: v2.2.0
+      cicd_version: v3.0.0
     secrets: inherit
