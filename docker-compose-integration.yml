@@ -4,7 +4,6 @@
 volumes:
   postgres-data:
   redis-data:
-  template-target: # change api name
 
 networks:
   backend:
@@ -93,14 +92,13 @@ services:
 
   template: # change api name
     container_name: template-api-integration # change api name
-    build:
-      context: .
-      dockerfile: development.Dockerfile
+    # The API under test: the published ghcr.io/mairie360/template-api:dev-<sha> image in CI, or # change api name
+    # template-api:local built by the *_test.sh script from development.Dockerfile. No build: block,
+    # so CI tests the artifact that gets promoted instead of recompiling the sources.
+    image: ${IMAGE_REF:?IMAGE_REF must name the API image under test, run the matching *_test.sh script}
     restart: always
     expose:
       - "3000" # change port
-    volumes:
-      - template-target:/usr/src/template/target # change api name
     networks:
       - backend
     dns:
@@ -116,13 +114,20 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://template:3000/health"] # change api name and port
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      # `cargo run` compiles the crate at container start: leave room for a cold CI runner.
-      start_period: 300s
+
+  # The published image is distroless (no shell, no curl), so the API cannot carry its own
+  # healthcheck: this sidecar polls /health and the services that need the API wait for it to
+  # complete instead.
+  template-ready: # change api name
+    image: curlimages/curl:latest
+    depends_on:
+      template: # change api name
+        condition: service_started
+    command: > # change api name and port
+      sh -c 'until curl -fsS http://template:3000/health >/dev/null; do
+      echo "waiting for template..."; sleep 2; done; echo "template ready"'
+    networks:
+      - backend
 
   # Replays tests/postman/collection.json against the `template` service. `baseUrl` is injected
   # here so the committed environment stays usable from a host shell (http://localhost:3000).
@@ -135,8 +140,8 @@ services:
     volumes:
       - ./tests/postman:/etc/newman:ro
     depends_on:
-      template: # change api name
-        condition: service_healthy
+      template-ready: # change api name
+        condition: service_completed_successfully
     command: >
       run /etc/newman/collection.json
       --environment /etc/newman/environment.json
