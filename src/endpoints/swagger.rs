@@ -5,7 +5,7 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityRequirement
 use utoipa::{Modify, OpenApi};
 
 /// Name of the JWT security scheme declared in the spec.
-pub const BEARER_AUTH: &str = "bearer_auth";
+pub const BEARER_AUTH: &str = "jwt";
 
 /// Path prefix of the routes wrapped by `JwtMiddleware` in `main.rs`.
 const PROTECTED_PREFIX: &str = "/api/";
@@ -22,7 +22,7 @@ const PROTECTED_PREFIX: &str = "/api/";
 pub struct ApiDoc;
 
 /// Declares the authentication of every operation, mirroring the `main.rs` wiring: the
-/// `bearer_auth` JWT scheme is required at the top level (every `/api/**` route sits behind
+/// `jwt` bearer scheme is required at the top level (every `/api/**` route sits behind
 /// `JwtMiddleware`), and each operation outside `/api/` is marked public with `security: []`.
 ///
 /// The ZAP OpenAPI coverage gate (mairie360/CICD `tests/zap/zap_hooks.py`) reads this to tell
