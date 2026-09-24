@@ -44,12 +44,24 @@ job: fix the example or validate the input, don't silence the alert.
 Both the ZAP and k6 stacks carry the OpenAPI coverage gate (MAIR-194) from mairie360/CICD `tests/`, available
 as `cicd-repo/` (checked out by CI, cloned by the scripts at the pinned `cicd_version` otherwise, override with
 `CICD_VERSION`; gitignored). ZAP runs with `--hook zap_hooks.py` and fails when an operation of the served spec was
-never reached, or when an operation requiring `bearer_auth` only got 401/403. `load-test.js` is built on
-`coverage.js`: one handler per operation (`"METHOD /path"`), k6 aborts at init otherwise; the spec it reads is the
-one served by the image under test, saved into the `openapi-spec` volume by `template-ready`. The auth rule relies
-on the spec: `endpoints/swagger.rs::SecurityAddon` declares `bearer_auth` at the top level and marks every
-operation outside `/api/` public (`security: []`), mirroring `main.rs`. **Adding an endpoint = adding its handler
-in `load-test.js`**, nothing to do for ZAP.
+never reached, or when an operation requiring `jwt` only got 401/403. The auth rule relies on the spec:
+`endpoints/swagger.rs::SecurityAddon` declares the `jwt` bearer scheme (the name every API uses) at the top level
+and marks every operation outside `/api/` public (`security: []`), mirroring `main.rs`.
+
+`load-test.js` is built on `coverage.js`: one handler per operation (`"METHOD /path"`), k6 aborts at init
+otherwise; the spec it reads is the one served by the image under test, saved into the `openapi-spec` volume by
+`template-ready`. Same shape as the five APIs (MAIR-195): the spec is split by HTTP method into a `reads` scenario
+(GET, ramp up to 20 VUs, against fixtures created in `setup()` and removed in `teardown()`) and a `writes` scenario
+(every other method, 2 VUs, each handler creating what it needs through `fixture()` and deleting it afterwards, so
+handlers are order-independent), one `p(95)` threshold per `op` tag (200 ms reads, 500 ms writes) and
+`http_req_failed < 1%`. k6 waits for the `seeder`, which runs with `ON_ERROR_STOP`. **Adding an endpoint = adding
+its handler in `load-test.js`** (`readHandlers` or `writeHandlers`), nothing to do for ZAP. Seed in `init-test.sql`
+the rows the spec's path examples point at (ZAP builds its requests from them) and only what the API cannot create.
+
+Every leaf handler is mounted as `#[get("/")]` (etc.) inside its segment scope, so its URL ends with `/`: its
+`#[utoipa::path]` must say `path = "/"` when the parent `doc.rs` nests it without a trailing slash, otherwise the
+spec documents a URL actix answers `404` to. `tests/routing_test.rs` checks every published operation against the
+mounted routes and catches it.
 
 ## Layout
 

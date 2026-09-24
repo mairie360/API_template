@@ -62,10 +62,10 @@ services:
       liquibase:
         condition: service_completed_successfully
     volumes:
-      - ./init-test.sql:/init-test.sql
-    # On se connecte directement au service 'postgres' via son nom de service
+      - ./init-test.sql:/init-test.sql:ro
+    # ON_ERROR_STOP: a failing fixture must fail the stack, not leave k6 running without its users.
     command: >
-      sh -c "psql -h postgres -U postgres -d mairie_360_database -f /init-test.sql"
+      psql -h postgres -U postgres -d mairie_360_database -v ON_ERROR_STOP=1 -f /init-test.sql
     environment:
       PGPASSWORD: ${DB_PASSWORD:-password}
     networks:
@@ -150,4 +150,7 @@ services:
       - OPENAPI_SPEC=/spec/openapi.json
     depends_on:
       template-ready: # change api name
+        condition: service_completed_successfully
+      # The fixtures load-test.js relies on (init-test.sql).
+      seeder:
         condition: service_completed_successfully
