@@ -41,6 +41,16 @@ container. ZAP fuzzes every field from the spec examples, so an example that doe
 (value too long for its column, NUL byte, unmapped constraint violation) or a `<script>` echoed back fails the
 job: fix the example or validate the input, don't silence the alert.
 
+Both the ZAP and k6 stacks carry the OpenAPI coverage gate (MAIR-194) from mairie360/CICD `tests/`, available
+as `cicd-repo/` (checked out by CI, cloned by the scripts at the pinned `cicd_version` otherwise, override with
+`CICD_VERSION`; gitignored). ZAP runs with `--hook zap_hooks.py` and fails when an operation of the served spec was
+never reached, or when an operation requiring `bearer_auth` only got 401/403. `load-test.js` is built on
+`coverage.js`: one handler per operation (`"METHOD /path"`), k6 aborts at init otherwise; the spec it reads is the
+one served by the image under test, saved into the `openapi-spec` volume by `template-ready`. The auth rule relies
+on the spec: `endpoints/swagger.rs::SecurityAddon` declares `bearer_auth` at the top level and marks every
+operation outside `/api/` public (`security: []`), mirroring `main.rs`. **Adding an endpoint = adding its handler
+in `load-test.js`**, nothing to do for ZAP.
+
 ## Layout
 
 - `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through

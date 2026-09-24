@@ -32,6 +32,12 @@ build `<name>:local` from `development.Dockerfile` when `IMAGE_REF` is empty. Gr
 collection with the API's endpoints (the template only checks `/`, `/health`, the OpenAPI document
 and the JWT gate; its pre-request script already forges HS256 JWTs with the stack's `JWT_SECRET`).
 
+The ZAP and k6 stacks enforce an OpenAPI coverage gate (mairie360/CICD `tests/`, fetched into
+`cicd-repo/`): every operation of the spec must be reached authenticated by ZAP, and `load-test.js`
+must declare one handler per operation (`"METHOD /path"`), otherwise k6 aborts at init. Each new
+endpoint therefore needs its handler in `load-test.js`; keep `SecurityAddon` in
+`src/endpoints/swagger.rs` so the spec says which routes require the JWT.
+
 ### 3. Remettre la configuration Renovate standard
 
 ⚠️ Le `renovate.json` du template fusionne **toutes** les mises à jour sans condition, même quand
