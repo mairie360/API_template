@@ -26,7 +26,9 @@ Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs
 
 In `.github/workflows/cicd.yml`, add `push:` under `on:`. Integration tests need no Postman
 account: the `integration_tests` job runs `./integration_test.sh`, which replays
-`tests/postman/collection.json` with newman inside `docker-compose-integration.yml`. Grow that
+`tests/postman/collection.json` with newman inside `docker-compose-integration.yml`. The CI jobs run
+the three `*_test.sh` stacks against the published `dev-<sha>` image (`IMAGE_REF`); locally the scripts
+build `<name>:local` from `development.Dockerfile` when `IMAGE_REF` is empty. Grow that
 collection with the API's endpoints (the template only checks `/`, `/health`, the OpenAPI document
 and the JWT gate; its pre-request script already forges HS256 JWTs with the stack's `JWT_SECRET`).
 

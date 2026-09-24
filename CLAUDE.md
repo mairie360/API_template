@@ -28,6 +28,11 @@ collection is a Postman v2.1 export; its pre-request script forges HS256 JWTs wi
 wrong-secret and an expired token), so a new API only adds requests for its endpoints. `baseUrl` is
 overridden with `--env-var` by the compose file; the committed default targets `localhost:3000`.
 
+In those three stacks the API service is `image: ${IMAGE_REF}` (no `build:` block): CI sets `IMAGE_REF` to the
+published `ghcr.io/mairie360/<name>:dev-<sha>` image, and the scripts build `template-api:local` from
+`development.Dockerfile` when it is empty. That image is distroless (no shell, no curl), so readiness is a
+`template-ready` sidecar polling `/health` that dependent services wait on (`service_completed_successfully`).
+
 The ZAP scan is authenticated and blocking: `security-scan` waits for the `seeder`, injects a static admin JWT
 (`sub=1`, signed with `JWT_SECRET=b"secret"`, see the comment in `docker-compose-security.yml`) on every request
 and fails on any alert not set to `IGNORE` / `OUTOFSCOPE` in `.zap/rules.tsv` (no `-I`; the file is the same in
@@ -58,8 +63,9 @@ job: fix the example or validate the input, don't silence the alert.
 ## CI and Renovate
 
 `.github/workflows/cicd.yml` calls `mairie360/CICD` `APIs_cicd.yml` but only on
-`workflow_dispatch` in the template (add `push:` in a real API). Its `integration_tests` job runs
-`./integration_test.sh`; no Postman variable or secret is needed. `renovate.json` deliberately
+`workflow_dispatch` in the template (add `push:` in a real API). Its `integration_tests`,
+`integration_and_security` and `performance_isolated` jobs run the three `*_test.sh` scripts with
+`IMAGE_REF` set to the `dev-<sha>` image published by `release-dev`; no Postman variable or secret is needed. `renovate.json` deliberately
 overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`) with
 `ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails. That is
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
