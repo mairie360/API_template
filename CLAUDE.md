@@ -92,3 +92,7 @@ overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`
 `ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails. That is
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
 and the README tells new APIs to swap it back. Don't propagate the automerge-all file to siblings.
+
+## Pull request reviewers
+
+Every PR requests a review from the whole team, minus its author: `CarolinHugo`, `LAURETbenjamin`, `MathTek` and `Quentintnrl` (`gh pr create … --reviewer CarolinHugo,LAURETbenjamin,MathTek`). `.github/CODEOWNERS` makes GitHub request them automatically as well.
