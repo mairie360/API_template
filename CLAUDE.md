@@ -106,6 +106,11 @@ mounted routes and catches it.
   `id_from_sql` (or `i32::try_from` answering `400`), never `as i32`: `2^32 + 1` would wrap to `1` and alias
   another row (MAIR-422). `lib.rs` and `main.rs` deny `clippy::cast_possible_truncation`, `cast_possible_wrap`
   and `cast_sign_loss`, so `cargo check_code` refuses the cast; do not silence them.
+- Lists are bounded (MAIR-425): a list route takes `endpoints::pagination::PageParams` (`limit` 1-500, default
+  100, `offset`) and runs `LIMIT` / `OFFSET` from `page()`, answering the page plus `total`; a feed that grows
+  forever (messages, history) pages by cursor instead; a time-range query caps the width of the range. Rate
+  limiting is not done per API: every call comes from a BFF, so a per-IP limit here would throttle all users at
+  once. It belongs to the ingress / BFF layer.
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
   (`SELECT to_jsonb(t) FROM (...) t`).
