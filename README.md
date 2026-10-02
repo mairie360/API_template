@@ -94,6 +94,9 @@ Remplir `API.md` et adapter `CLAUDE.md`.
   instead of staying up and answering `500`.
 - Swagger UI (`/swagger-ui/`) and `/api-docs/openapi.json` are served only when
   `API_DOCS_ENABLED=true`. Every compose stack sets it; production leaves it unset.
+- `JWT_SECRET` must be random, at least 32 bytes and distinct per instance: `mairie360_api_lib`
+  refuses to start with a short or well-known one. The compose stacks use the public test value
+  `b"secret"` with `JWT_ALLOW_WEAK_SECRET=true`; never set that variable in a deployment.
 
 ## Commandes
 

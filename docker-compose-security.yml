@@ -107,8 +107,12 @@ services:
     environment:
       <<: *common-env
       PUBLIC_URL: http://template.development.mairie360.fr # change api name
+      # Public test value, known to every reader of this repo: mairie360_api_lib refuses to start
+      # with it unless JWT_ALLOW_WEAK_SECRET is set. Dev/test stacks only, never a deployment, where
+      # JWT_SECRET is a random value of at least 32 bytes, distinct per instance (MAIR-428).
       JWT_SECRET: b"secret"
       JWT_TIMEOUT: 3600
+      JWT_ALLOW_WEAK_SECRET: "true"
     depends_on:
       liquibase:
         condition: service_completed_successfully

@@ -59,6 +59,11 @@ never reached, or when an operation requiring `jwt` only got 401/403. The auth r
 `endpoints/swagger.rs::SecurityAddon` declares the `jwt` bearer scheme (the name every API uses) at the top level
 and marks every operation outside `/api/` public (`security: []`), mirroring `main.rs`.
 
+`mairie360_api_lib` (2.0+) refuses to start with a missing, short (< 32 bytes) or well-known `JWT_SECRET`
+(MAIR-428). The four compose stacks keep the public test value `b"secret"` (the static ZAP / k6 admin token and the
+Postman script sign with it) and set `JWT_ALLOW_WEAK_SECRET: "true"` next to it: without it the API panics at
+startup and every stack fails. A deployment never sets that variable and gets its own random secret.
+
 `load-test.js` is built on `coverage.js`: one handler per operation (`"METHOD /path"`), k6 aborts at init
 otherwise; the spec it reads is the one served by the image under test, saved into the `openapi-spec` volume by
 `template-ready`. Same shape as the five APIs (MAIR-195): the spec is split by HTTP method into a `reads` scenario
