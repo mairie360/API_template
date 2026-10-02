@@ -99,6 +99,10 @@ mounted routes and catches it.
 - Logs go through `tracing` (`tracing_subscriber` set up first thing in `main.rs`, level from `RUST_LOG`,
   default `info`), which also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
   `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
+- Ids: path and body ids are `u64` in the API and `INT4` in Postgres. Convert with the lib's `id_to_sql` /
+  `id_from_sql` (or `i32::try_from` answering `400`), never `as i32`: `2^32 + 1` would wrap to `1` and alias
+  another row (MAIR-422). `lib.rs` and `main.rs` deny `clippy::cast_possible_truncation`, `cast_possible_wrap`
+  and `cast_sign_loss`, so `cargo check_code` refuses the cast; do not silence them.
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
   (`SELECT to_jsonb(t) FROM (...) t`).
