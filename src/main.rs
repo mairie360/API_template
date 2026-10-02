@@ -8,6 +8,7 @@ use mairie360_api_lib::env_manager::{get_critical_env_var, get_env_var};
 use mairie360_api_lib::security::JwtMiddleware;
 use mairie360_api_lib::state::AppState;
 
+use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -15,6 +16,13 @@ use utoipa_swagger_ui::SwaggerUi;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Without a subscriber, actix's `Logger` and every `tracing` event are silently dropped.
+    // `RUST_LOG` overrides the level; database errors are logged at `error`.
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
     let redis_url = get_critical_env_var("REDIS_URL");
     let db_user = get_critical_env_var("DB_USER");
     let db_password = get_critical_env_var("DB_PASSWORD");
@@ -28,7 +36,7 @@ async fn main() -> std::io::Result<()> {
     let port = get_critical_env_var("PORT");
     let bind_address = format!("{}:{}", host, port);
     let docs_enabled = api_docs_enabled(get_env_var(API_DOCS_ENABLED).as_deref());
-    println!("Swagger UI and OpenAPI document served: {docs_enabled}");
+    tracing::info!(docs_enabled, "Swagger UI and OpenAPI document served");
 
     let server = HttpServer::new(move || {
         App::new()
@@ -57,7 +65,7 @@ async fn main() -> std::io::Result<()> {
     let addr = server.addrs().first().copied();
     tokio::spawn(async move {
         if let Some(addr) = addr {
-            println!("Server started on http://{}", addr);
+            tracing::info!("Server listening on http://{addr}");
         }
     });
 

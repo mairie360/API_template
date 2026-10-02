@@ -1,3 +1,4 @@
+pub mod db_error;
 pub mod health;
 pub mod swagger;
 pub mod v1;

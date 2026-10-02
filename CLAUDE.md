@@ -92,7 +92,12 @@ mounted routes and catches it.
 - `src/endpoints/validation.rs`: request views with text fields implement `Validate` (length matching the
   Postgres column, no control character; `<`, `>` and `&` are legitimate text) and handlers extract them with
   `ValidatedJson` / `ValidatedQuery` instead of `web::Json` / `web::Query`, which answer `400` naming the field.
-  Map the lib's `DbError::ForeignKeyViolation` / `UniqueViolation` to `4xx`, never `500`. Responses carry
+  Map the lib's `DbError::ForeignKeyViolation` / `UniqueViolation` to `4xx`, never `500`: call
+  `endpoints::db_error::classify_db_error("<resource>/<op>", &e)` and map each `DbFailure` (`NotFound`, `Conflict`,
+  `InvalidReference`, `Internal`) to a variant of the handler's error enum. Never `.map_err(|_| ...)`: the
+  helper logs the cause, `Internal` at `error` (MAIR-421).
+- Logs go through `tracing` (`tracing_subscriber` set up first thing in `main.rs`, level from `RUST_LOG`,
+  default `info`), which also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
   `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
