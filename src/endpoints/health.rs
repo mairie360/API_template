@@ -53,13 +53,7 @@ pub async fn health() -> impl Responder {
 )]
 #[get("/ready")]
 pub async fn ready(state: web::Data<AppState>) -> impl Responder {
-    let postgres = within_timeout(async {
-        state
-            .get_smart_db()
-            .fetch_scalar::<i32, _>(&PingQueryView)
-            .await
-            .is_ok()
-    });
+    let postgres = postgres_answers(&state);
     let redis =
         within_timeout(async { state.get_redis().key_exist(REDIS_PROBE_KEY).await.is_ok() });
     let (postgres, redis) = tokio::join!(postgres, redis);
@@ -73,6 +67,33 @@ pub async fn ready(state: web::Data<AppState>) -> impl Responder {
     } else {
         HttpResponse::ServiceUnavailable().body(format!("not ready: {}", down.join(", ")))
     }
+}
+
+/// `SELECT 1` on Postgres, bounded by [`DEPENDENCY_TIMEOUT`].
+pub async fn postgres_answers(state: &AppState) -> bool {
+    within_timeout(async {
+        state
+            .get_smart_db()
+            .fetch_scalar::<i32, _>(&PingQueryView)
+            .await
+            .is_ok()
+    })
+    .await
+}
+
+/// Startup check: tries [`postgres_answers`] up to `attempts` times, `delay` apart, and says whether
+/// Postgres ever answered. `main.rs` refuses to start when it does not, instead of serving `500`s.
+pub async fn wait_for_postgres(state: &AppState, attempts: u32, delay: Duration) -> bool {
+    for attempt in 1..=attempts {
+        if postgres_answers(state).await {
+            return true;
+        }
+        tracing::warn!(attempt, attempts, "Postgres does not answer yet");
+        if attempt < attempts {
+            tokio::time::sleep(delay).await;
+        }
+    }
+    false
 }
 
 async fn within_timeout(check: impl Future<Output = bool>) -> bool {

@@ -87,6 +87,8 @@ Remplir `API.md` et adapter `CLAUDE.md`.
 
 - `GET /health`: liveness, always `200 OK`. `GET /ready`: readiness, `503` while Postgres or Redis
   does not answer. Point the chart's `livenessProbe` and `readinessProbe` at them.
+- The API refuses to start when Postgres does not answer within about 30 s: the pod restarts
+  instead of staying up and answering `500`.
 - Swagger UI (`/swagger-ui/`) and `/api-docs/openapi.json` are served only when
   `API_DOCS_ENABLED=true`. Every compose stack sets it; production leaves it unset.
 

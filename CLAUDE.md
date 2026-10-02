@@ -84,7 +84,10 @@ mounted routes and catches it.
 - `src/endpoints/health.rs`: `GET /health` is the liveness probe (always `200 OK`, no dependency checked, so a
   Postgres outage does not restart every pod); `GET /ready` is the readiness probe (`SELECT 1` through
   `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
-  `livenessProbe` at the first and `readinessProbe` at the second.
+  `livenessProbe` at the first and `readinessProbe` at the second. At startup `main.rs` waits for Postgres
+  (`health::wait_for_postgres`, 10 tries about 30 s in all) and exits with an error when it never answers: the lib
+  would otherwise start without a pool and answer `500` to everything (MAIR-423). Redis stays optional at startup
+  (the cache degrades to Postgres), `/ready` still reports it.
 - `src/endpoints/` mirrors the URL path: each node has `mod.rs` (`config()`), and leaves have
   `endpoint.rs` (handler + `trigger_*` + error enum implementing `ResponseError` and
   `From<ApiLibError>`), `view.rs` (DTOs, private fields + getters) and `doc.rs` (utoipa), nested
