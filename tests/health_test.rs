@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use actix_web::{http::StatusCode, test, web, App};
-use api_template::endpoints::health::{self, DEPENDENCY_TIMEOUT}; // change api name
+use api_template::endpoints::health::{self, wait_for_postgres, DEPENDENCY_TIMEOUT}; // change api name
 use mairie360_api_lib::state::AppState;
 use mairie360_api_lib::test_setup::queries_setup::get_shared_db;
 use mairie360_api_lib::test_setup::redis_setup::start_redis_container;
@@ -76,4 +76,21 @@ async fn health_answers_200_even_without_dependencies() {
         get(state, "/health").await,
         (StatusCode::OK, "OK".to_owned())
     );
+}
+
+#[actix_web::test]
+async fn startup_check_passes_once_postgres_answers() {
+    let (_, pg_url) = get_shared_db().await;
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url.clone()).await;
+
+    assert!(wait_for_postgres(&state, 3, std::time::Duration::ZERO).await);
+}
+
+#[actix_web::test]
+async fn startup_check_gives_up_after_its_attempts() {
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), UNREACHABLE_PG.to_owned()).await;
+
+    let started = Instant::now();
+    assert!(!wait_for_postgres(&state, 2, std::time::Duration::from_millis(10)).await);
+    assert!(started.elapsed() < DEPENDENCY_TIMEOUT * 2 + std::time::Duration::from_secs(1));
 }

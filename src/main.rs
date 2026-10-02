@@ -10,6 +10,7 @@
 use actix_web::{middleware, web, App, HttpServer};
 
 use api_template::database::pg_url::build_pg_url; // change api name
+use api_template::endpoints::health::wait_for_postgres; // change api name
 use api_template::endpoints::swagger::{api_docs_enabled, ApiDoc, API_DOCS_ENABLED}; // change api name
 use api_template::endpoints::{config, health}; // change api name
 
@@ -20,6 +21,11 @@ use mairie360_api_lib::state::AppState;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+/// Postgres gets this many tries at startup, [`STARTUP_DB_RETRY_DELAY`] apart (about 30 s in all with
+/// the 2 s timeout of each try), before the API gives up.
+const STARTUP_DB_ATTEMPTS: u32 = 10;
+const STARTUP_DB_RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
 
 //                                        -- MAIN FUNCTION --
 
@@ -40,6 +46,12 @@ async fn main() -> std::io::Result<()> {
     let db_name = get_critical_env_var("DB_NAME");
     let pg_url = build_pg_url(&db_user, &db_password, &db_host, &db_port, &db_name);
     let state = AppState::new(redis_url, pg_url).await;
+    // The lib keeps going without a pool when Postgres is unreachable: refuse to start instead, so
+    // the pod restarts (with backoff) rather than staying up and answering 500 to every request.
+    if !wait_for_postgres(&state, STARTUP_DB_ATTEMPTS, STARTUP_DB_RETRY_DELAY).await {
+        tracing::error!("Postgres did not answer at startup, exiting");
+        return Err(std::io::Error::other("Postgres unreachable at startup"));
+    }
     let data = web::Data::new(state);
     let host = get_critical_env_var("HOST");
     let port = get_critical_env_var("PORT");
