@@ -17,7 +17,8 @@ template must get one. The template ships no business endpoint on purpose (`v1` 
 Same aliases as the siblings (`.cargo/config.toml`): `cargo lint_check`, `cargo lint_fix`,
 `cargo check_code` (clippy `-D warnings`), `cargo test` (Docker + GHCR pull access, testcontainers
 via `mairie360_api_lib::test_setup::queries_setup::get_shared_db`), `cargo cov_test` (60 % line
-gate, `endpoints/`, `main.rs`, `lib.rs` excluded), `cargo open_api` (OpenAPI JSON on stdout).
+gate, only `main.rs` and `lib.rs` excluded: handlers and validation count, test them), `cargo open_api`
+(OpenAPI JSON on stdout).
 
 End-to-end harnesses (what CI runs on `main` after the dev release; each spins up its own stack from a
 standalone compose file, so env/image changes must be mirrored in all of them): `./integration_test.sh`
@@ -31,15 +32,19 @@ overridden with `--env-var` by the compose file; the committed default targets `
 In those three stacks the API service is `image: ${IMAGE_REF}` (no `build:` block): CI sets `IMAGE_REF` to the
 published `ghcr.io/mairie360/<name>:dev-<sha>` image, and the scripts build `template-api:local` from
 `development.Dockerfile` when it is empty. That image is distroless (no shell, no curl), so readiness is a
-`template-ready` sidecar polling `/health` that dependent services wait on (`service_completed_successfully`).
+`template-ready` sidecar polling `/ready` that dependent services wait on (`service_completed_successfully`). Every
+stack sets `API_DOCS_ENABLED=true` (shared `x-common-env` anchor): without it the API serves neither Swagger UI nor
+`/api-docs/openapi.json`, which newman, ZAP and k6 read.
 
 The ZAP scan is authenticated and blocking: `security-scan` waits for the `seeder`, injects a static admin JWT
 (`sub=1`, signed with `JWT_SECRET=b"secret"`, see the comment in `docker-compose-security.yml`) on every request
 and fails on any alert not set to `IGNORE` / `OUTOFSCOPE` in `.zap/rules.tsv` (no `-I`; the file is the same in
 every API). `-O http://<service>:<port>` is required, the spec's `servers` being unreachable from the ZAP
-container. ZAP fuzzes every field from the spec examples, so an example that does not deserialize, a `500`
-(value too long for its column, NUL byte, unmapped constraint violation) or a `<script>` echoed back fails the
-job: fix the example or validate the input, don't silence the alert.
+container. ZAP fuzzes every field from the spec examples, so an example that does not deserialize or a `500`
+(value too long for its column, NUL byte, unmapped constraint violation) fails the job: fix the example or validate
+the input, don't silence the alert. Do not reject `<` / `>` in free text to please ZAP (MAIR-426): a value echoed
+in a JSON body served with `nosniff` is not an XSS, escaping is the front's job. If ZAP reports such a reflection,
+set that rule to `IGNORE` in `.zap/rules.tsv` with the reason, in every API.
 
 Both the ZAP and k6 stacks carry the OpenAPI coverage gate (MAIR-194) from mairie360/CICD `tests/`, available
 as `cicd-repo/` (checked out by CI, cloned by the scripts at the pinned `cicd_version` otherwise, override with
@@ -67,14 +72,19 @@ mounted routes and catches it.
 
 - `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
   `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
-  `/swagger-ui/` (spec at `/api-docs/openapi.json`, also the ZAP scan target), public `/health` and `/`, and mounts
+  `/swagger-ui/` and the spec at `/api-docs/openapi.json` (the ZAP scan target) only when `API_DOCS_ENABLED=true`
+  (never in production: consumers use the published package), mounts the public probes and
   `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
+- `src/endpoints/health.rs`: `GET /health` is the liveness probe (always `200 OK`, no dependency checked, so a
+  Postgres outage does not restart every pod); `GET /ready` is the readiness probe (`SELECT 1` through
+  `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
+  `livenessProbe` at the first and `readinessProbe` at the second.
 - `src/endpoints/` mirrors the URL path: each node has `mod.rs` (`config()`), and leaves have
   `endpoint.rs` (handler + `trigger_*` + error enum implementing `ResponseError` and
   `From<ApiLibError>`), `view.rs` (DTOs, private fields + getters) and `doc.rs` (utoipa), nested
   up to `endpoints/swagger.rs::ApiDoc` (prefix `/api/v1`).
 - `src/endpoints/validation.rs`: request views with text fields implement `Validate` (length matching the
-  Postgres column, no control character, no `<` / `>` in displayed labels) and handlers extract them with
+  Postgres column, no control character; `<`, `>` and `&` are legitimate text) and handlers extract them with
   `ValidatedJson` / `ValidatedQuery` instead of `web::Json` / `web::Query`, which answer `400` naming the field.
   Map the lib's `DbError::ForeignKeyViolation` / `UniqueViolation` to `4xx`, never `500`. Responses carry
   `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
@@ -84,14 +94,18 @@ mounted routes and catches it.
 
 ## CI and Renovate
 
-`.github/workflows/cicd.yml` calls `mairie360/CICD` `APIs_cicd.yml` but only on
-`workflow_dispatch` in the template (add `push:` in a real API). Its `integration_tests`,
+`.github/workflows/cicd.yml` calls `mairie360/CICD` `APIs_cicd.yml` on pull requests (lint, build, tests) and
+on pushes to `main` (plus releases and the three stacks). Its `integration_tests`,
 `integration_and_security` and `performance_isolated` jobs run the three `*_test.sh` scripts with
 `IMAGE_REF` set to the `dev-<sha>` image published by `release-dev`; no Postman variable or secret is needed. `renovate.json` deliberately
 overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`) with
 `ignoreTests: true` and `platformAutomerge: false`, so PRs merge even when CI fails. That is
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
 and the README tells new APIs to swap it back. Don't propagate the automerge-all file to siblings.
+
+`auto-approve.yml` approves Renovate PRs on the PR author (`github.event.pull_request.user.login`, not
+`github.actor`), with `pull-requests: write` only and the action pinned by SHA. Both `Dockerfile`s pin their base
+images by digest (`tests/dockerfile_test.rs` enforces it) and build with `--locked`.
 
 ## Pull request reviewers
 

@@ -1,6 +1,6 @@
 use actix_web::{http::Method, test, web, App, HttpResponse};
 use api_template::endpoints::swagger::ApiDoc;
-use api_template::endpoints::{config, health, hello};
+use api_template::endpoints::{config, health};
 use utoipa::OpenApi;
 
 // Every operation published in the OpenAPI contract (the one the `@mairie360/<name>-api-openapi` package is
@@ -13,7 +13,7 @@ async fn every_published_operation_is_routed() {
     let app = test::init_service(
         App::new()
             .service(health::health)
-            .service(hello::hello)
+            .service(health::ready)
             .service(web::scope("/api").configure(config))
             .default_service(web::to(HttpResponse::ImATeapot)),
     )
