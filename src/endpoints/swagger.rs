@@ -1,5 +1,4 @@
 use crate::endpoints::health::HealthDoc;
-use crate::endpoints::hello::HelloDoc;
 use crate::endpoints::v1::doc::V1Doc;
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityRequirement, SecurityScheme};
 use utoipa::{Modify, OpenApi};
@@ -10,12 +9,24 @@ pub const BEARER_AUTH: &str = "jwt";
 /// Path prefix of the routes wrapped by `JwtMiddleware` in `main.rs`.
 const PROTECTED_PREFIX: &str = "/api/";
 
+/// Environment variable that serves Swagger UI (`/swagger-ui/`) and the OpenAPI document
+/// (`/api-docs/openapi.json`) when set to `true`. Dev and test stacks set it (ZAP, k6 and newman
+/// read the spec from the running API); production leaves it unset, consumers get the contract from
+/// the published `@mairie360/<name>-api-openapi` package.
+pub const API_DOCS_ENABLED: &str = "API_DOCS_ENABLED";
+
+/// Whether the value of [`API_DOCS_ENABLED`] enables the docs: only `true` (case-insensitive) does,
+/// an absent or any other value keeps them off.
+#[must_use]
+pub fn api_docs_enabled(value: Option<&str>) -> bool {
+    value.is_some_and(|v| v.trim().eq_ignore_ascii_case("true"))
+}
+
 #[derive(OpenApi)]
 #[openapi(
     nest(
         (path = "/api/v1", api = V1Doc),
         (path = "/", api = HealthDoc),
-        (path = "/", api = HelloDoc),
     ),
     modifiers(&SecurityAddon)
 )]
@@ -80,6 +91,16 @@ mod tests {
 
     fn spec() -> Value {
         serde_json::from_str(&ApiDoc::openapi().to_json().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn api_docs_are_off_unless_explicitly_enabled() {
+        assert!(api_docs_enabled(Some("true")));
+        assert!(api_docs_enabled(Some(" TRUE ")));
+        assert!(!api_docs_enabled(None));
+        assert!(!api_docs_enabled(Some("")));
+        assert!(!api_docs_enabled(Some("1")));
+        assert!(!api_docs_enabled(Some("false")));
     }
 
     #[test]

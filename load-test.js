@@ -11,7 +11,8 @@
 //   fixtures created once in setup() and removed in teardown();
 // - `writes`: every other operation with 2 VUs. Each handler is self-contained: it creates what it
 //   needs through `fixture()`, sends its request, then deletes what it created, so the handlers
-//   do not depend on their order and the database ends as it started.
+//   do not depend on their order and the database ends as it started. The template publishes no
+//   write operation, so the scenario only exists once the spec or `writeHandlers` has one.
 import http from 'k6/http';
 import { check, fail, sleep } from 'k6';
 import { createCoverage, loadSpec } from '/coverage.js';
@@ -67,18 +68,21 @@ const spec = loadSpec();
 
 const readHandlers = {
   'GET /health': ({ request }) => check(request(), { 'health 200': (r) => r.status === 200 }),
+  'GET /ready': ({ request }) => check(request(), { 'ready 200': (r) => r.status === 200 }),
 };
 
-const writeHandlers = {
-  'POST /': ({ request }) => check(request(), { 'hello 200': (r) => r.status === 200 }),
-};
+const writeHandlers = {};
 
 const reads = createCoverage(readHandlers, {
   spec: specSubset(spec, (method) => READ_METHODS.includes(method)),
 });
-const writes = createCoverage(writeHandlers, {
-  spec: specSubset(spec, (method) => !READ_METHODS.includes(method)),
-});
+// `createCoverage` throws on a spec without operation: no write operation and no write handler
+// means no `writes` scenario. A handler left without its operation still makes k6 abort.
+const writeSpec = specSubset(spec, (method) => !READ_METHODS.includes(method));
+const writes =
+  Object.keys(writeSpec.paths).length > 0 || Object.keys(writeHandlers).length > 0
+    ? createCoverage(writeHandlers, { spec: writeSpec })
+    : null;
 
 /** One `p(95)` threshold per operation (`op` tag) of `coverage`. */
 function latencyThresholds(coverage, budgetMs) {
@@ -100,17 +104,19 @@ export const options = {
         { duration: '10s', target: 0 }, // Ramp down
       ],
     },
-    writes: {
-      executor: 'constant-vus',
-      exec: 'writeScenario',
-      vus: 2,
-      duration: '1m40s',
-    },
+    ...(writes && {
+      writes: {
+        executor: 'constant-vus',
+        exec: 'writeScenario',
+        vus: 2,
+        duration: '1m40s',
+      },
+    }),
   },
   thresholds: {
     ...reads.thresholds, // every operation exercised, no handler error (shared counters)
     ...latencyThresholds(reads, READ_BUDGET_MS),
-    ...latencyThresholds(writes, WRITE_BUDGET_MS),
+    ...(writes && latencyThresholds(writes, WRITE_BUDGET_MS)),
     http_req_failed: ['rate<0.01'], // Less than 1% errors
   },
 };

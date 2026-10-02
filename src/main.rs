@@ -1,10 +1,10 @@
 use actix_web::{middleware, web, App, HttpServer};
 
 use api_template::database::pg_url::build_pg_url; // change api name
-use api_template::endpoints::swagger::ApiDoc; // change api name
-use api_template::endpoints::{config, health, hello}; // change api name
+use api_template::endpoints::swagger::{api_docs_enabled, ApiDoc, API_DOCS_ENABLED}; // change api name
+use api_template::endpoints::{config, health}; // change api name
 
-use mairie360_api_lib::env_manager::get_critical_env_var;
+use mairie360_api_lib::env_manager::{get_critical_env_var, get_env_var};
 use mairie360_api_lib::security::JwtMiddleware;
 use mairie360_api_lib::state::AppState;
 
@@ -27,6 +27,8 @@ async fn main() -> std::io::Result<()> {
     let host = get_critical_env_var("HOST");
     let port = get_critical_env_var("PORT");
     let bind_address = format!("{}:{}", host, port);
+    let docs_enabled = api_docs_enabled(get_env_var(API_DOCS_ENABLED).as_deref());
+    println!("Swagger UI and OpenAPI document served: {docs_enabled}");
 
     let server = HttpServer::new(move || {
         App::new()
@@ -34,15 +36,20 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             // Every response is JSON or plain text: forbid browsers from sniffing it as HTML.
             .wrap(middleware::DefaultHeaders::new().add(("X-Content-Type-Options", "nosniff")))
-            // 1. Swagger UI et API Docs (Public)
-            .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-docs/openapi.json", ApiDoc::openapi()),
-            )
-            // 2. Endpoints Publics
+            // 1. Swagger UI and the OpenAPI document (public), only where explicitly enabled:
+            //    dev and test stacks, never the production deployment.
+            .configure(|cfg| {
+                if docs_enabled {
+                    cfg.service(
+                        SwaggerUi::new("/swagger-ui/{_:.*}")
+                            .url("/api-docs/openapi.json", ApiDoc::openapi()),
+                    );
+                }
+            })
+            // 2. Public probes
             .service(health::health)
-            .service(hello::hello)
-            // 3. Endpoints Protégés par JWT
+            .service(health::ready)
+            // 3. Endpoints protected by the JWT
             .service(web::scope("/api").wrap(JwtMiddleware).configure(config))
     })
     .bind(bind_address)?;
@@ -50,7 +57,7 @@ async fn main() -> std::io::Result<()> {
     let addr = server.addrs().first().copied();
     tokio::spawn(async move {
         if let Some(addr) = addr {
-            println!("Serveur démarré avec succès sur http://{}", addr);
+            println!("Server started on http://{}", addr);
         }
     });
 

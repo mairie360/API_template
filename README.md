@@ -24,12 +24,12 @@ Fichiers concernés : `Cargo.toml`, `src/main.rs`, `examples/generate_openapi.rs
 
 ### 2. Enable CI
 
-In `.github/workflows/cicd.yml`, add `push:` under `on:`. Integration tests need no Postman
-account: the `integration_tests` job runs `./integration_test.sh`, which replays
+`.github/workflows/cicd.yml` already runs on pull requests and on pushes to `main`. Integration
+tests need no Postman account: the `integration_tests` job runs `./integration_test.sh`, which replays
 `tests/postman/collection.json` with newman inside `docker-compose-integration.yml`. The CI jobs run
 the three `*_test.sh` stacks against the published `dev-<sha>` image (`IMAGE_REF`); locally the scripts
 build `<name>:local` from `development.Dockerfile` when `IMAGE_REF` is empty. Grow that
-collection with the API's endpoints (the template only checks `/`, `/health`, the OpenAPI document
+collection with the API's endpoints (the template only checks `/health`, `/ready`, the OpenAPI document
 and the JWT gate; its pre-request script already forges HS256 JWTs with the stack's `JWT_SECRET`).
 
 The ZAP and k6 stacks enforce an OpenAPI coverage gate (mairie360/CICD `tests/`, fetched into
@@ -74,13 +74,20 @@ Le template ne contient aucun endpoint métier. Suivre la structure des autres A
 
 Remplir `API.md` et adapter `CLAUDE.md`.
 
+## Probes and API docs
+
+- `GET /health`: liveness, always `200 OK`. `GET /ready`: readiness, `503` while Postgres or Redis
+  does not answer. Point the chart's `livenessProbe` and `readinessProbe` at them.
+- Swagger UI (`/swagger-ui/`) and `/api-docs/openapi.json` are served only when
+  `API_DOCS_ENABLED=true`. Every compose stack sets it; production leaves it unset.
+
 ## Commandes
 
 ```bash
 cargo lint_check      # fmt --check            (CI)
 cargo check_code      # clippy -D warnings     (CI)
 cargo test            # nécessite Docker + accès ghcr.io/mairie360
-cargo cov_test        # llvm-cov, seuil 60 % de lignes (hors endpoints/, main.rs, lib.rs)
+cargo cov_test        # llvm-cov, 60 % line gate (main.rs and lib.rs excluded)
 cargo open_api > openapi.json && npx orval   # client TypeScript dans generated/
 docker compose up --watch                    # stack de dev (Postgres, Liquibase, Redis, nginx)
 ./integration_test.sh # newman replays tests/postman/collection.json (CI `integration_tests` job)

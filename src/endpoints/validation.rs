@@ -3,8 +3,11 @@
 //! A request view implements [`Validate`] and the handler extracts it with [`ValidatedJson`] or
 //! [`ValidatedQuery`] instead of `web::Json` / `web::Query`: an invalid value is rejected with a
 //! `400 Bad Request` (plain-text body naming the field) before the handler runs, so it never
-//! reaches Postgres (where an over-long value or a NUL byte used to end in a `500`) nor comes back
-//! unescaped in a JSON response.
+//! reaches Postgres (where an over-long value or a NUL byte used to end in a `500`).
+//!
+//! Free text is stored as typed: `<`, `>` and `&` are legitimate ("budget > 10 000 €", "->").
+//! Responses are JSON served with `X-Content-Type-Options: nosniff`, so the browser never renders
+//! them as HTML; escaping is the job of the front that displays the value.
 
 use std::fmt;
 use std::future::Future;
@@ -60,15 +63,8 @@ fn check_no_control(field: &str, value: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
-fn check_no_markup(field: &str, value: &str) -> Result<(), ValidationError> {
-    if value.contains(['<', '>']) {
-        return Err(ValidationError::new(field, "must not contain `<` or `>`"));
-    }
-    Ok(())
-}
-
-/// A short label displayed as-is by the fronts (person name, role or group name): not blank, at
-/// most `max` characters, no control character and no `<` / `>`.
+/// A short label (person name, role or group name): not blank, at most `max` characters and no
+/// control character.
 ///
 /// # Errors
 ///
@@ -78,12 +74,11 @@ pub fn check_label(field: &str, value: &str, max: usize) -> Result<(), Validatio
         return Err(ValidationError::new(field, "must not be empty"));
     }
     check_length(field, value, max)?;
-    check_no_control(field, value)?;
-    check_no_markup(field, value)
+    check_no_control(field, value)
 }
 
 /// A free-text description: may be empty, at most `max` characters, line breaks and tabs
-/// allowed, no other control character and no `<` / `>`.
+/// allowed, no other control character.
 ///
 /// # Errors
 ///
@@ -99,7 +94,7 @@ pub fn check_description(field: &str, value: &str, max: usize) -> Result<(), Val
             "must not contain control characters other than line breaks and tabs",
         ));
     }
-    check_no_markup(field, value)
+    Ok(())
 }
 
 /// An opaque value only compared or stored as text (token, credential, `device_info`, search
@@ -184,14 +179,97 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use actix_web::{http::StatusCode, test as actix_test, App, HttpResponse};
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    struct Body {
+        name: String,
+    }
+
+    impl Validate for Body {
+        fn validate(&self) -> Result<(), ValidationError> {
+            check_label("name", &self.name, 8)
+        }
+    }
+
+    async fn echo_json(body: ValidatedJson<Body>) -> HttpResponse {
+        HttpResponse::Ok().body(body.into_inner().name)
+    }
+
+    async fn echo_query(query: ValidatedQuery<Body>) -> HttpResponse {
+        HttpResponse::Ok().body(query.into_inner().name)
+    }
+
+    async fn call(request: actix_test::TestRequest) -> (StatusCode, String) {
+        let app = actix_test::init_service(
+            App::new()
+                .route("/json", web::post().to(echo_json))
+                .route("/query", web::get().to(echo_query)),
+        )
+        .await;
+        let response = actix_test::call_service(&app, request.to_request()).await;
+        let status = response.status();
+        let body = actix_test::read_body(response).await;
+        (status, String::from_utf8(body.to_vec()).unwrap())
+    }
+
+    #[actix_web::test]
+    async fn validated_json_passes_a_valid_body_through() {
+        let request = actix_test::TestRequest::post()
+            .uri("/json")
+            .set_json(serde_json::json!({ "name": "a > b" }));
+        assert_eq!(call(request).await, (StatusCode::OK, "a > b".to_owned()));
+    }
+
+    #[actix_web::test]
+    async fn validated_json_answers_400_naming_the_field() {
+        let request = actix_test::TestRequest::post()
+            .uri("/json")
+            .set_json(serde_json::json!({ "name": "much too long" }));
+        let (status, body) = call(request).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body, "Invalid `name`: must be at most 8 characters");
+    }
+
+    #[actix_web::test]
+    async fn validated_json_answers_400_on_a_malformed_body() {
+        let request = actix_test::TestRequest::post()
+            .uri("/json")
+            .insert_header(("content-type", "application/json"))
+            .set_payload("{");
+        assert_eq!(call(request).await.0, StatusCode::BAD_REQUEST);
+    }
+
+    #[actix_web::test]
+    async fn validated_query_passes_a_valid_query_through() {
+        let request = actix_test::TestRequest::get().uri("/query?name=a%3Cb");
+        assert_eq!(call(request).await, (StatusCode::OK, "a<b".to_owned()));
+    }
+
+    #[actix_web::test]
+    async fn validated_query_answers_400_on_invalid_or_missing_values() {
+        let (status, body) = call(actix_test::TestRequest::get().uri("/query?name=%20")).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body, "Invalid `name`: must not be empty");
+        assert_eq!(
+            call(actix_test::TestRequest::get().uri("/query")).await.0,
+            StatusCode::BAD_REQUEST
+        );
+    }
 
     #[test]
-    fn label_rejects_blank_long_control_and_markup() {
+    fn label_rejects_blank_long_and_control() {
         assert!(check_label("name", "Service urbanisme", 64).is_ok());
         assert!(check_label("name", "  ", 64).is_err());
         assert!(check_label("name", &"a".repeat(65), 64).is_err());
         assert!(check_label("name", "Service\0", 64).is_err());
-        assert!(check_label("name", "<script>alert(1);</script>", 64).is_err());
+    }
+
+    #[test]
+    fn free_text_keeps_angle_brackets() {
+        assert!(check_label("name", "Voirie <-> Urbanisme", 64).is_ok());
+        assert!(check_description("description", "budget > 10 000 € <3", 1000).is_ok());
     }
 
     #[test]
@@ -203,7 +281,7 @@ mod tests {
     fn description_allows_line_breaks_only() {
         assert!(check_description("description", "a\nb\tc", 1000).is_ok());
         assert!(check_description("description", "a\0b", 1000).is_err());
-        assert!(check_description("description", "<b>", 1000).is_err());
+        assert!(check_description("description", &"a".repeat(1001), 1000).is_err());
     }
 
     #[test]
