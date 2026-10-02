@@ -97,6 +97,10 @@ mounted routes and catches it.
 - `src/database/<resource>/<op>/view.rs`: query views implementing `ApiRequestDto`, run through
   `state.get_smart_db()`. `fetch_one`/`fetch_all` SQL must return one JSON column
   (`SELECT to_jsonb(t) FROM (...) t`).
+- A write spanning several queries, and an access check followed by the action it guards, runs in one
+  transaction (MAIR-420): `let mut tx = state.get_smart_db().begin().await?;`, the queries on `tx`, then
+  `tx.commit().await?`. An early `?` drops `tx` and rolls back what already ran; never compensate by hand with a
+  `DELETE` whose error is ignored. A single CTE statement is fine too. `tests/transaction_test.rs` is the example.
 
 ## CI and Renovate
 

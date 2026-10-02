@@ -75,6 +75,10 @@ shows the pattern): non-admin on an admin route, another user reading / modifyin
 resource, an id in the body that differs from the id in the URL. `endpoints/` counts in the 60 %
 coverage gate.
 
+A write that needs several queries (create a resource then its members, check access then act)
+goes through one transaction: `state.get_smart_db().begin()`, the queries on the transaction, then
+`commit()` (see `tests/transaction_test.rs`). An error in between rolls everything back.
+
 ### 5. Documenter
 
 Remplir `API.md` et adapter `CLAUDE.md`.
