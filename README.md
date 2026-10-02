@@ -70,6 +70,11 @@ Le template ne contient aucun endpoint métier. Suivre la structure des autres A
 `v1/mod.rs` et `v1/doc.rs`), `src/database/<ressource>/<op>/view.rs` et les tests associés dans
 `tests/queries/`.
 
+Every endpoint ships its access-denial tests as well as its happy path (`tests/auth_gate_test.rs`
+shows the pattern): non-admin on an admin route, another user reading / modifying / deleting the
+resource, an id in the body that differs from the id in the URL. `endpoints/` counts in the 60 %
+coverage gate.
+
 ### 5. Documenter
 
 Remplir `API.md` et adapter `CLAUDE.md`.

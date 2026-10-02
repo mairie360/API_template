@@ -20,6 +20,12 @@ via `mairie360_api_lib::test_setup::queries_setup::get_shared_db`), `cargo cov_t
 gate, only `main.rs` and `lib.rs` excluded: handlers and validation count, test them), `cargo open_api`
 (OpenAPI JSON on stdout).
 
+Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
+`/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path). The lib answers
+`401` for a bad token and `404` for a well-signed token naming an unknown or archived account. Every new endpoint
+adds its own negative tests next to the positive ones: non-admin on an admin route, another user reading /
+modifying / deleting the resource, an id in the body that differs from the id in the URL.
+
 End-to-end harnesses (what CI runs on `main` after the dev release; each spins up its own stack from a
 standalone compose file, so env/image changes must be mirrored in all of them): `./integration_test.sh`
 (`docker-compose-integration.yml`, newman replaying `tests/postman/collection.json` with
