@@ -79,6 +79,9 @@ A write that needs several queries (create a resource then its members, check ac
 goes through one transaction: `state.get_smart_db().begin()`, the queries on the transaction, then
 `commit()` (see `tests/transaction_test.rs`). An error in between rolls everything back.
 
+A list endpoint never returns a whole table: it takes `endpoints::pagination::PageParams`
+(`limit` capped at 500, `offset`) and answers one page plus the total count.
+
 ### 5. Documenter
 
 Remplir `API.md` et adapter `CLAUDE.md`.
