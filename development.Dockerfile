@@ -4,20 +4,27 @@ FROM rust:1.99-bookworm@sha256:59037199c44290f2befcdd58dcc540164763fc296950255aa
 RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-watch --locked
 
+# Run as an unprivileged user: it owns the sources, `target/` and the cargo registry cache so
+# `cargo watch` can rebuild and Compose `develop.watch` can sync files into the container.
+# change api name
+RUN useradd --create-home --uid 1000 dev \
+    && mkdir -p /usr/src/template \
+    && chown -R dev:dev /usr/src/template /usr/local/cargo
+COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+USER dev
+
 # Must match the `develop.watch` targets of docker-compose.yml and entrypoint.sh
 # change api name
 WORKDIR /usr/src/template
 
 # --- DEPENDENCY CACHE ---
-COPY Cargo.toml Cargo.lock ./
+COPY --chown=dev:dev Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 # This layer stays cached as long as Cargo.toml and Cargo.lock do not change
 RUN cargo build --locked && rm -rf src
 # -----------------------------
 
-COPY src ./src
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY --chown=dev:dev src ./src
 
 # change port
 EXPOSE 3000

@@ -22,4 +22,7 @@ jobs:
     with:
       package_name: template-api # change api name
       cicd_version: v4.0.1
-    secrets: inherit
+    # Only the secrets the reusable workflow declares, instead of `secrets: inherit`.
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      N8N_WEBHOOK_SECRET: ${{ secrets.N8N_WEBHOOK_SECRET }}
