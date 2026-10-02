@@ -9,9 +9,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
-COPY . .
+
+# --- DEPENDENCY CACHE ---
+# Build the dependencies alone first: this layer stays cached as long as Cargo.toml and Cargo.lock
+# do not change, so a code change only recompiles the API itself.
 # `--locked`: build exactly the reviewed `Cargo.lock`, fail instead of resolving new versions.
-RUN cargo build --release --locked
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main() {}" > src/main.rs && touch src/lib.rs \
+    && cargo build --release --locked \
+    && rm -rf src
+# -----------------------------
+
+COPY . .
+# Make sure cargo rebuilds the crate instead of keeping the placeholder built above.
+RUN touch src/main.rs src/lib.rs && cargo build --release --locked
 
 # --- Stage 2: runtime (distroless, non-root) ---
 # The `nonroot` variant runs as uid/gid 65532. `USER` is repeated numerically so

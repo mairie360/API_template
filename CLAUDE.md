@@ -132,7 +132,10 @@ and the README tells new APIs to swap it back. Don't propagate the automerge-all
 
 `auto-approve.yml` approves Renovate PRs on the PR author (`github.event.pull_request.user.login`, not
 `github.actor`), with `pull-requests: write` only and the action pinned by SHA. Both `Dockerfile`s pin their base
-images by digest (`tests/dockerfile_test.rs` enforces it) and build with `--locked`.
+images by digest (`tests/dockerfile_test.rs` enforces it) and build with `--locked`; the production one builds
+the dependencies in their own cached layer first (MAIR-427). Every advisory ignored in `.cargo/audit.toml` carries
+a comment saying why it does not apply and when to drop it: no bare ignore, and a patched version is taken with
+`cargo update -p <crate>` rather than ignored.
 
 ## Pull request reviewers
 
