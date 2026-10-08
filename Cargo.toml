@@ -16,6 +16,8 @@ utoipa = { version = "6", features = ["actix_extras", "yaml"] }
 utoipa-swagger-ui = { version = "10", features = ["actix-web"] }
 
 [dev-dependencies]
+# Captures the request log of actix's `Logger` in the request_log tests (MAIR-290).
+log = "0.4"
 mairie360_api_lib = { version = "3.0.1", features = ["test-utils"] }
 jsonwebtoken = "11"
 serial_test = "4.0.0"
