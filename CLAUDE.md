@@ -79,6 +79,14 @@ Every leaf handler is mounted as `#[get("/")]` (etc.) inside its segment scope, 
 spec documents a URL actix answers `404` to. `tests/routing_test.rs` checks every published operation against the
 mounted routes and catches it.
 
+
+Personal data stays out of the logs (MAIR-290): `request_log::request_logger()` replaces actix's
+`Logger::default()` (whose `%r` logs the query string), and a log describes an error by its type and
+context, never by the value it received. `gdpr_marker_test.sh` (`gdpr-marker.yaml` +
+`docker-compose-gdpr-marker.yml`, engine in mairie360/CICD `tests/gdpr/marker`, run by CICD's
+`gdpr_marker` job on the staging image) plays a journey with a marker user and fails when one of its
+values reaches a container log: a new API replaces the template's two steps with its own flows,
+deliberate errors included.
 ## Layout
 
 - `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through

@@ -13,6 +13,7 @@ use api_template::database::pg_url::build_pg_url; // change api name
 use api_template::endpoints::health::wait_for_postgres; // change api name
 use api_template::endpoints::swagger::{api_docs_enabled, ApiDoc, API_DOCS_ENABLED}; // change api name
 use api_template::endpoints::{config, health}; // change api name
+use api_template::request_log::request_logger; // change api name
 
 use mairie360_api_lib::env_manager::{get_critical_env_var, get_env_var};
 use mairie360_api_lib::security::JwtMiddleware;
@@ -62,7 +63,8 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
-            .wrap(middleware::Logger::default())
+            // Method and path only, never the query string (MAIR-290, see `request_log`).
+            .wrap(request_logger())
             // Every response is JSON or plain text: forbid browsers from sniffing it as HTML.
             .wrap(middleware::DefaultHeaders::new().add(("X-Content-Type-Options", "nosniff")))
             // 1. Swagger UI and the OpenAPI document (public), only where explicitly enabled:
