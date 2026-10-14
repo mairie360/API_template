@@ -81,8 +81,8 @@ mounted routes and catches it.
 
 ## Layout
 
-- `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
-  `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
+- `src/main.rs` starts logs and traces with the lib's `init_telemetry`, builds `AppState` from `REDIS_URL` +
+  `DB_*` (the Postgres URL goes through `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
   `/swagger-ui/` and the spec at `/api-docs/openapi.json` (the ZAP scan target) only when `API_DOCS_ENABLED=true`
   (never in production: consumers use the published package), mounts the public probes and
   `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
@@ -104,8 +104,8 @@ mounted routes and catches it.
   `endpoints::db_error::classify_db_error("<resource>/<op>", &e)` and map each `DbFailure` (`NotFound`, `Conflict`,
   `InvalidReference`, `Internal`) to a variant of the handler's error enum. Never `.map_err(|_| ...)`: the
   helper logs the cause, `Internal` at `error` (MAIR-421).
-- Logs go through `tracing` (`tracing_subscriber` set up first thing in `main.rs`, level from `RUST_LOG`,
-  default `info`), which also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
+- Logs go through `tracing`, set up by the lib's `init_telemetry` (see "Logs and observability" below), which
+  also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
   `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
 - Ids: path and body ids are `u64` in the API and `INT4` in Postgres. Convert with the lib's `id_to_sql` /
   `id_from_sql` (or `i32::try_from` answering `400`), never `as i32`: `2^32 + 1` would wrap to `1` and alias
@@ -123,6 +123,32 @@ mounted routes and catches it.
   transaction (MAIR-420): `let mut tx = state.get_smart_db().begin().await?;`, the queries on `tx`, then
   `tx.commit().await?`. An early `?` drops `tx` and rolls back what already ran; never compensate by hand with a
   `DELETE` whose error is ignored. A single CTE statement is fine too. `tests/transaction_test.rs` is the example.
+
+## Logs and observability (MAIR-503)
+
+Logs and traces come from `mairie360_api_lib::logging::telemetry` (feature `otel`), shared by every API: `main.rs`
+only calls `init_telemetry("template-api")` (`change api name`: the API's service name, e.g. `project-api`) first
+thing and keeps the guard until exit. Read the lib for the details.
+
+- Logs on stdout in the format of every API: coloured text (`RUST_LOG`, default `info`), one JSON object per line
+  with `LOG_FORMAT=json`. The request root span is hidden from them (it holds the client address and query string).
+- Traces over OTLP/HTTP, opt-in: nothing is exported unless `OTEL_EXPORTER_OTLP_ENDPOINT` (or
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) is set, `OTEL_SDK_DISABLED=true` forces it off, a failing exporter is
+  logged and never stops the API. The endpoint is an agent relaying to Scaleway Cockpit (OTel Collector or Grafana
+  Alloy, e.g. `http://alloy:4318`); `OTEL_SERVICE_NAME` defaults to the name given to `init_telemetry`. The
+  commented block of `docker-compose.yml` shows the variables.
+- `main.rs` wraps the app in the lib's `TracingLogger` next to the request log (`middleware::Logger`, kept), so
+  requests refused by `JwtMiddleware` get a span too. Root spans are named `<METHOD> <route pattern>` and continue
+  an incoming `traceparent`. The SQL appears as span **events** (`db.statement` with `$n` placeholders, never the
+  values). The lib's `Redact` drops `http.client_ip` and the query string before export: build test providers with
+  `telemetry::tracer_provider`, never `SdkTracerProvider::builder()`.
+- Never add `opentelemetry*` / `tracing-actix-web` / `tracing-opentelemetry` to `Cargo.toml`: use the lib's
+  re-exports (`telemetry::opentelemetry`, `telemetry::opentelemetry_sdk`), its versions are coupled.
+  `tracing-subscriber` is only a dev-dependency, for the test subscriber.
+- `tests/telemetry_test.rs` asserts the span of a request through `TracingLogger` and the JWT gate (status, route,
+  continued trace id, no query string, no client address) and of a `401`. A new API points it at one of its routes
+  and also checks the SQL events (see Project API's `tests/endpoints/telemetry.rs`); the redaction of logs and spans
+  is tested in the lib.
 
 ## CI and Renovate
 
