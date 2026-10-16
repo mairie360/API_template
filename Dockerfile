@@ -1,6 +1,6 @@
 # Images are pinned by digest (Renovate bumps tag and digest together): a re-pushed tag cannot
 # change what gets built.
-FROM rust:1.99-slim-bookworm@sha256:53fcf8044a64eb36f8a6de6ff011c7e41f549730761e134e0a73ee3f02fc52e0 AS builder
+FROM rust:1.99-slim-bookworm@sha256:a24e292b4af7bdee351a31d3a6379972a5652f0ea22a1b6d6883324ac4f5097c AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
