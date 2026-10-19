@@ -6,6 +6,8 @@
 // endpoints, the denials specific to that endpoint: non-admin on an admin route, another user
 // reading / modifying / deleting a resource, an id in the body that differs from the id in the URL.
 
+mod common;
+
 use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -16,6 +18,8 @@ use mairie360_api_lib::security::{AuthenticatedUser, JwtMiddleware};
 use mairie360_api_lib::state::AppState;
 use mairie360_api_lib::test_setup::queries_setup::{get_shared_db, ADMIN_ID, BOB_ID};
 use serial_test::serial;
+
+use common::api_db_url;
 
 /// Secret of the tokens the gate accepts in these tests.
 const SECRET: &str = "auth-gate-test-secret-of-at-least-32-bytes";
@@ -63,8 +67,8 @@ async fn whoami(user: AuthenticatedUser) -> HttpResponse {
 
 async fn call(path: &str, bearer: Option<&str>) -> (StatusCode, String) {
     set_jwt_env();
-    let (_, pg_url) = get_shared_db().await;
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url.clone()).await;
+    // The gate's own queries (account lookup) run under the API role's grants.
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), api_db_url().await).await;
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(state))

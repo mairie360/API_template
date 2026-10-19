@@ -10,7 +10,10 @@ shared pattern changes there (lib version, `main.rs` bootstrap, Docker/compose f
 workflow, Renovate config), port it here. The crate is `api_template`; every spot a new API must
 rename carries a `change api name` / `change port` marker, on the same line (or on the line just
 above in the `Dockerfile`s, which forbid trailing comments). Any API name, port or URL added to the
-template must get one. The template ships no business endpoint on purpose (`v1` is an empty scope).
+template must get one. The API's Postgres role (`core_api` as a placeholder, the template has none of its own)
+carries a `change api role` marker: `tests/common/mod.rs::API_DB_ROLE`, `tests/db_role_test.rs` and `DB_USER` /
+`DB_PASSWORD` in the four compose files, plus the `-D<role>_password` passed to Liquibase right below them (a
+folded `command:` cannot hold a comment). The template ships no business endpoint on purpose (`v1` is an empty scope).
 
 ## Commands
 
@@ -19,6 +22,16 @@ Same aliases as the siblings (`.cargo/config.toml`): `cargo lint_check`, `cargo 
 via `mairie360_api_lib::test_setup::queries_setup::get_shared_db`), `cargo cov_test` (60 % line
 gate, only `main.rs` and `lib.rs` excluded: handlers and validation count, test them), `cargo open_api`
 (OpenAPI JSON on stdout).
+
+Tests run the code as the API's own Postgres role, like in staging (MAIR-556). `get_shared_db()` hands back the
+**superuser** URL of the shared testcontainer, for fixtures only (creating, seeding, granting a probe table); the
+code under test (`AppState`, query views) connects with `tests/common::api_db_url()`, i.e. the lib's
+`get_shared_db_as(API_DB_ROLE)` (`http_setup::test_app_state_as` for endpoint tests). A query outside the grants of
+Database's `api_grants.sql` then fails the test with `permission denied` (SQLSTATE `42501`): add the grant there,
+never connect the code under test as the superuser. `tests/db_role_test.rs` checks the role is the one in use, not
+a superuser, and is refused a table it is not granted (pick one for the new API's role). The compose stacks connect
+the API as its role too (`-D<role>_password` passed to Liquibase, Database image `dev-949384c` or later);
+postgres, liquibase and the seeder keep the superuser.
 
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
 `/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path). The lib answers
@@ -91,7 +104,9 @@ mounted routes and catches it.
   `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
   `livenessProbe` at the first and `readinessProbe` at the second. At startup `main.rs` waits for Postgres
   (`health::wait_for_postgres`, 10 tries about 30 s in all) and exits with an error when it never answers: the lib
-  would otherwise start without a pool and answer `500` to everything (MAIR-423). Redis stays optional at startup
+  would otherwise start without a pool and answer `500` to everything (MAIR-423). Since `mairie360_api_lib` 3.0
+`AppState::new` itself panics when Postgres stays unreachable for `DB_CONNECT_TIMEOUT` seconds, so a state cannot
+be built on an unreachable database (`tests/health_test.rs::startup_refuses_an_unreachable_postgres`). Redis stays optional at startup
   (the cache degrades to Postgres), `/ready` still reports it.
 - `src/endpoints/` mirrors the URL path: each node has `mod.rs` (`config()`), and leaves have
   `endpoint.rs` (handler + `trigger_*` + error enum implementing `ResponseError` and
