@@ -50,6 +50,28 @@ another key) and `jwt_expired`; the pre-request script only forges `jwt_hs256`, 
 A new API only adds requests for its endpoints. `baseUrl` is
 overridden with `--env-var` by the compose file; the committed default targets `localhost:3000`.
 
+Split of the tests (MAIR-262), the same in every API: `cargo test` (unit and handler tests) validates the code,
+newman validates that the running image works. A generated API's collection holds, for **every operation of its
+spec**, the success case and one case per documented `400` / `401` / `403` / `404` / `409` / `412`, chained in
+business journeys; `429` / `500` / `502` / `503` stay in the handler tests. Three collection-level scripts, kept
+identical in every API collection (copy them from here or from a sibling, never fork them), back it:
+
+- the collection pre-request loads `/api-docs/openapi.json` once, and the collection test checks every answer
+  against it: documented operation, documented status, content type, and the JSON body against the response schema
+  (`$ref`s inlined). A request opts out with `pm.variables.set('openapi_contract', 'skip')`, saying why: here, the
+  `Auth` requests check the JWT gate on the bare `/api/v1/` scope, which documents no operation. **A generated API
+  points them at one of its operations and drops the opt-out**;
+- `Every secured operation refuses a missing JWT` replays every `jwt`-secured operation of the spec without a token
+  and expects a documented `401 text/plain`;
+- `OpenAPI coverage`, the last request, fails when an operation has no success case or a documented status above was
+  never answered, and when an entry of the collection variable `openapi_coverage_exceptions` (`"METHOD /path STATUS":
+  "reason"`, `2xx` for the success) is no longer needed.
+
+So a new endpoint fails the integration stack until the collection tests it. `endpoints::config` registers a
+`PathConfig`: a path id that does not parse answers `400 text/plain` `Invalid path: ids are integers.` (actix answers
+`404`), and `endpoints::headers::default_headers()` gives `text/plain; charset=utf-8` to the plain-text answers that
+set no content type.
+
 In those three stacks the API service is `image: ${IMAGE_REF}` (no `build:` block): CI sets `IMAGE_REF` to the
 published `ghcr.io/mairie360/<name>:dev-<sha>` image, and the scripts build `template-api:local` from
 `development.Dockerfile` when it is empty. That image is distroless (no shell, no curl), so readiness is a
