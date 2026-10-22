@@ -1,58 +1,59 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "48c4db04baccb15eba7deff03c7ad08a82a482a6", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-10-22 09:56 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "8cc13deb1470eab0385c720c8acc5b4d9ecc46f3", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-10-22 17:39 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `48c4db0` | 2026-10-22 09:56 UTC |
+| dev | — | `8cc13de` | 2026-10-22 17:39 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
 #### Nouveautés
-
-- Export des traces OpenTelemetry en OTLP/HTTP, désactivé tant que `OTEL_EXPORTER_OTLP_ENDPOINT` (ou `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) n'est pas défini ; `OTEL_SDK_DISABLED=true` le coupe. Chaque requête produit un span nommé `<METHOD> <route>` qui continue un `traceparent` entrant. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
-- Format de logs JSON (une ligne par événement) avec `LOG_FORMAT=json` ; sans cette variable, texte coloré. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Les traces OpenTelemetry sont exportées en OTLP/HTTP, uniquement si `OTEL_EXPORTER_OTLP_ENDPOINT` ou `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` est défini. `OTEL_SDK_DISABLED=true` les coupe, et un exporteur en échec est seulement journalisé sans arrêter l'API. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Les logs peuvent être émis en JSON, une ligne par événement, avec `LOG_FORMAT=json`. Sinon ils sont en texte coloré, avec le niveau réglé par `RUST_LOG` (défaut `info`). (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
 
 #### Changements de comportement
-
-- Les logs passent désormais par `init_telemetry` de la lib : le niveau reste piloté par `RUST_LOG` (défaut `info`), mais le format et le span de requête masqué des logs changent. Les requêtes refusées par `JwtMiddleware` (401) ont maintenant un span. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Chaque requête produit désormais un span racine nommé `<MÉTHODE> <route>`. Les requêtes refusées par `JwtMiddleware` (401) en ont un aussi, et le span reprend le `traceparent` entrant. Le span racine n'apparaît pas dans les logs et n'exporte ni l'adresse client ni la query string. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Le format des logs vient désormais de la lib partagée `mairie360_api_lib` (feature `otel`) au lieu d'un `tracing_subscriber::fmt` local. Le journal de requêtes actix (`middleware::Logger`) est conservé.
 
 #### Technique
-
-- Dépendances : tokio passe de 1.54.0 à 1.54.1 (revert d'un changement sur les timers, selon la PR), `utoipa-swagger-ui` en 10.0.2, images Rust de base épinglées par digest (Dockerfile et development.Dockerfile), CICD de v4.2.2 à v4.5.0 (workflow et tests d'intégration). ([#96](https://github.com/mairie360/API_template/pull/96), [#109](https://github.com/mairie360/API_template/pull/109), [#110](https://github.com/mairie360/API_template/pull/110))
-- Télémétrie : `tracing-subscriber` passe en dev-dependency, tests `telemetry_test.rs` ajoutés ; documentation du pool Postgres dans CLAUDE.md (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)). Secrets de release transmis au workflow CICD (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94)).
+- Workflow CI `mairie360/CICD` mis à jour de v4.2.2 à v4.5.0 en plusieurs PR Renovate. L'appel transmet aussi `ANTHROPIC_API_KEY`, `RELEASE_APP_ID` et `RELEASE_APP_PK` pour le journal de release (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94)).
+- Images de base `rust:1.99-bookworm` et `rust:1.99-slim-bookworm` mises à jour par digest dans `Dockerfile` et `development.Dockerfile`, sans effet sur le code de l'API.
+- Dépendances : tokio 1.54.0 et 1.54.1, utoipa-swagger-ui 10.0.2. Les diffs de ces PR sont vides, donc `Cargo.lock` n'est pas visible.
+- `tracing-subscriber` passe en dev-dependency et `tests/telemetry_test.rs` ajoute deux tests de span (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79)).
+- Documentation : `CLAUDE.md` décrit les variables du pool Postgres (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)) et l'observabilité (MAIR-503).
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
 #### Nouveautés
-
-- Export des traces OpenTelemetry en OTLP/HTTP, désactivé tant que `OTEL_EXPORTER_OTLP_ENDPOINT` (ou `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) n'est pas défini ; `OTEL_SDK_DISABLED=true` le coupe. Chaque requête produit un span nommé `<METHOD> <route>` qui continue un `traceparent` entrant. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
-- Format de logs JSON (une ligne par événement) avec `LOG_FORMAT=json` ; sans cette variable, texte coloré. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Les traces OpenTelemetry sont exportées en OTLP/HTTP, uniquement si `OTEL_EXPORTER_OTLP_ENDPOINT` ou `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` est défini. `OTEL_SDK_DISABLED=true` les coupe. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Les logs peuvent être émis en JSON avec `LOG_FORMAT=json`. Sinon ils sont en texte coloré, niveau réglé par `RUST_LOG`. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
 
 #### Changements de comportement
-
-- Les logs passent désormais par `init_telemetry` de la lib : le niveau reste piloté par `RUST_LOG` (défaut `info`), mais le format et le span de requête masqué des logs changent. Les requêtes refusées par `JwtMiddleware` (401) ont maintenant un span. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Chaque requête produit un span racine `<MÉTHODE> <route>`, y compris les requêtes refusées en 401 par `JwtMiddleware`. Le span racine n'apparaît pas dans les logs et n'exporte ni l'adresse client ni la query string. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Le format des logs vient de la lib partagée `mairie360_api_lib` au lieu d'un `tracing_subscriber::fmt` local.
 
 #### Technique
-
-- Dépendances et CI : tokio 1.54.1, images Rust épinglées par digest (Dockerfile et development.Dockerfile), CICD de v4.4.0 à v4.5.0. ([#109](https://github.com/mairie360/API_template/pull/109), [#110](https://github.com/mairie360/API_template/pull/110))
-- Télémétrie : `tracing-subscriber` passe en dev-dependency, tests `telemetry_test.rs` ajoutés ; documentation du pool Postgres dans CLAUDE.md (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)).
+- Workflow CI `mairie360/CICD` mis à jour jusqu'à v4.4.0, puis v4.4.1 et v4.4.3 en PR Renovate ensuite passées dans les plages suivantes.
+- Images de base `rust:1.99-*` épinglées par digest mises à jour (`Dockerfile` et `development.Dockerfile`), sans effet sur le code.
+- Documentation `CLAUDE.md` pour le pool Postgres (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)) et l'observabilité (MAIR-503).
 
 ## Différence staging → prod (en staging, pas encore en prod)
 
 #### Technique
-
-- Dépendances et CI : `utoipa-swagger-ui` en 10.0.2, tokio 1.54.0, CICD de v4.3.1 à v4.3.2 puis v4.4.3 ; ajout des secrets de release au workflow CICD (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94)). ([#84055a3](https://github.com/mairie360/API_template/pull/99), [#96](https://github.com/mairie360/API_template/pull/96), [#98](https://github.com/mairie360/API_template/pull/98), [#105](https://github.com/mairie360/API_template/pull/105))
-- Aucun changement fonctionnel côté API : seules des mises à jour de dépendances et de configuration de pipeline.
+- Workflow CI `mairie360/CICD` mis à jour de v4.3.0 à v4.3.2, avec les PR Renovate correspondantes.
+- Transmission des secrets `ANTHROPIC_API_KEY`, `RELEASE_APP_ID` et `RELEASE_APP_PK` au workflow pour le journal de release (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94)).
+- Dépendances : tokio 1.54.0 et utoipa-swagger-ui 10.0.2. Les diffs de ces PR sont vides, donc `Cargo.lock` n'est pas visible.
 
 ## Historique des passages
 
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-10-22 17:39 UTC | dev | — | `8cc13de` | [run](https://github.com/mairie360/API_template/actions/runs/39823502623) |
 | 2026-10-22 09:56 UTC | dev | — | `48c4db0` | [run](https://github.com/mairie360/API_template/actions/runs/39757025776) |
 | 2026-10-22 05:58 UTC | dev | — | `fb59f4b` | [run](https://github.com/mairie360/API_template/actions/runs/39729696870) |
 | 2026-10-22 02:37 UTC | dev | — | `cde04e4` | [run](https://github.com/mairie360/API_template/actions/runs/39711278450) |
