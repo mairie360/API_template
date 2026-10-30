@@ -1,10 +1,13 @@
-use std::time::Instant;
+mod common;
+
+use std::time::{Duration, Instant};
 
 use actix_web::{http::StatusCode, test, web, App};
-use api_template::endpoints::health::{self, wait_for_postgres, DEPENDENCY_TIMEOUT}; // change api name
-use mairie360_api_lib::state::AppState;
-use mairie360_api_lib::test_setup::queries_setup::get_shared_db;
+use api_template::endpoints::health::{self, wait_for_postgres}; // change api name
+use mairie360_api_lib::state::{AppState, DB_CONNECT_TIMEOUT_ENV};
 use mairie360_api_lib::test_setup::redis_setup::start_redis_container;
+
+use common::api_db_url;
 
 /// Nothing listens on port 1: both connections are refused right away.
 const UNREACHABLE_PG: &str = "postgres://postgres:postgres@127.0.0.1:1/postgres";
@@ -26,9 +29,9 @@ async fn get(state: AppState, uri: &str) -> (StatusCode, String) {
 
 #[actix_web::test]
 async fn ready_answers_200_when_postgres_and_redis_answer() {
-    let (_, pg_url) = get_shared_db().await;
+    let pg_url = api_db_url().await;
     let (_redis, redis) = start_redis_container().await;
-    let state = AppState::new(redis.url.clone(), pg_url.clone()).await;
+    let state = AppState::new(redis.url.clone(), pg_url).await;
 
     assert_eq!(
         get(state, "/ready").await,
@@ -37,27 +40,9 @@ async fn ready_answers_200_when_postgres_and_redis_answer() {
 }
 
 #[actix_web::test]
-async fn ready_answers_503_naming_every_unreachable_dependency() {
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), UNREACHABLE_PG.to_owned()).await;
-
-    let started = Instant::now();
-    let answer = get(state, "/ready").await;
-
-    assert_eq!(
-        answer,
-        (
-            StatusCode::SERVICE_UNAVAILABLE,
-            "not ready: postgres, redis".to_owned()
-        )
-    );
-    // Both checks run concurrently, each bounded by the timeout.
-    assert!(started.elapsed() < DEPENDENCY_TIMEOUT * 2);
-}
-
-#[actix_web::test]
 async fn ready_names_only_the_unreachable_dependency() {
-    let (_, pg_url) = get_shared_db().await;
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url.clone()).await;
+    let pg_url = api_db_url().await;
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url).await;
 
     assert_eq!(
         get(state, "/ready").await,
@@ -69,8 +54,8 @@ async fn ready_names_only_the_unreachable_dependency() {
 }
 
 #[actix_web::test]
-async fn health_answers_200_even_without_dependencies() {
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), UNREACHABLE_PG.to_owned()).await;
+async fn health_answers_200_even_without_redis() {
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), api_db_url().await).await;
 
     assert_eq!(
         get(state, "/health").await,
@@ -80,17 +65,30 @@ async fn health_answers_200_even_without_dependencies() {
 
 #[actix_web::test]
 async fn startup_check_passes_once_postgres_answers() {
-    let (_, pg_url) = get_shared_db().await;
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url.clone()).await;
+    let pg_url = api_db_url().await;
+    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url).await;
 
-    assert!(wait_for_postgres(&state, 3, std::time::Duration::ZERO).await);
+    assert!(wait_for_postgres(&state, 3, Duration::ZERO).await);
 }
 
+/// Since mairie360_api_lib 3.0 (MAIR-423) `AppState::new` itself refuses an unreachable Postgres:
+/// it panics once `DB_CONNECT_TIMEOUT` has elapsed, so the API never starts without its database.
 #[actix_web::test]
-async fn startup_check_gives_up_after_its_attempts() {
-    let state = AppState::new(UNREACHABLE_REDIS.to_owned(), UNREACHABLE_PG.to_owned()).await;
+async fn startup_refuses_an_unreachable_postgres() {
+    // Only this test builds a state on an unreachable Postgres; the others connect at once and
+    // never reach the timeout.
+    std::env::set_var(DB_CONNECT_TIMEOUT_ENV, "1");
 
     let started = Instant::now();
-    assert!(!wait_for_postgres(&state, 2, std::time::Duration::from_millis(10)).await);
-    assert!(started.elapsed() < DEPENDENCY_TIMEOUT * 2 + std::time::Duration::from_secs(1));
+    let startup = actix_web::rt::spawn(AppState::new(
+        UNREACHABLE_REDIS.to_owned(),
+        UNREACHABLE_PG.to_owned(),
+    ))
+    .await;
+
+    assert!(
+        startup.as_ref().is_err_and(|e| e.is_panic()),
+        "the state must not be built without Postgres"
+    );
+    assert!(started.elapsed() < Duration::from_secs(10));
 }
