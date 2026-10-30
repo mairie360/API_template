@@ -10,7 +10,10 @@ shared pattern changes there (lib version, `main.rs` bootstrap, Docker/compose f
 workflow, Renovate config), port it here. The crate is `api_template`; every spot a new API must
 rename carries a `change api name` / `change port` marker, on the same line (or on the line just
 above in the `Dockerfile`s, which forbid trailing comments). Any API name, port or URL added to the
-template must get one. The template ships no business endpoint on purpose (`v1` is an empty scope).
+template must get one. The API's Postgres role (`core_api` as a placeholder, the template has none of its own)
+carries a `change api role` marker: `tests/common/mod.rs::API_DB_ROLE`, `tests/db_role_test.rs` and `DB_USER` /
+`DB_PASSWORD` in the four compose files, plus the `-D<role>_password` passed to Liquibase right below them (a
+folded `command:` cannot hold a comment). The template ships no business endpoint on purpose (`v1` is an empty scope).
 
 ## Commands
 
@@ -19,6 +22,16 @@ Same aliases as the siblings (`.cargo/config.toml`): `cargo lint_check`, `cargo 
 via `mairie360_api_lib::test_setup::queries_setup::get_shared_db`), `cargo cov_test` (60 % line
 gate, only `main.rs` and `lib.rs` excluded: handlers and validation count, test them), `cargo open_api`
 (OpenAPI JSON on stdout).
+
+Tests run the code as the API's own Postgres role, like in staging (MAIR-556). `get_shared_db()` hands back the
+**superuser** URL of the shared testcontainer, for fixtures only (creating, seeding, granting a probe table); the
+code under test (`AppState`, query views) connects with `tests/common::api_db_url()`, i.e. the lib's
+`get_shared_db_as(API_DB_ROLE)` (`http_setup::test_app_state_as` for endpoint tests). A query outside the grants of
+Database's `api_grants.sql` then fails the test with `permission denied` (SQLSTATE `42501`): add the grant there,
+never connect the code under test as the superuser. `tests/db_role_test.rs` checks the role is the one in use, not
+a superuser, and is refused a table it is not granted (pick one for the new API's role). The compose stacks connect
+the API as its role too (`-D<role>_password` passed to Liquibase, Database image `dev-949384c` or later);
+postgres, liquibase and the seeder keep the superuser.
 
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
 `/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path). The lib answers
@@ -81,8 +94,8 @@ mounted routes and catches it.
 
 ## Layout
 
-- `src/main.rs` builds `AppState` from `REDIS_URL` + `DB_*` (the Postgres URL goes through
-  `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
+- `src/main.rs` starts logs and traces with the lib's `init_telemetry`, builds `AppState` from `REDIS_URL` +
+  `DB_*` (the Postgres URL goes through `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
   `/swagger-ui/` and the spec at `/api-docs/openapi.json` (the ZAP scan target) only when `API_DOCS_ENABLED=true`
   (never in production: consumers use the published package), mounts the public probes and
   `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
@@ -91,7 +104,9 @@ mounted routes and catches it.
   `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
   `livenessProbe` at the first and `readinessProbe` at the second. At startup `main.rs` waits for Postgres
   (`health::wait_for_postgres`, 10 tries about 30 s in all) and exits with an error when it never answers: the lib
-  would otherwise start without a pool and answer `500` to everything (MAIR-423). Redis stays optional at startup
+  would otherwise start without a pool and answer `500` to everything (MAIR-423). Since `mairie360_api_lib` 3.0
+`AppState::new` itself panics when Postgres stays unreachable for `DB_CONNECT_TIMEOUT` seconds, so a state cannot
+be built on an unreachable database (`tests/health_test.rs::startup_refuses_an_unreachable_postgres`). Redis stays optional at startup
   (the cache degrades to Postgres), `/ready` still reports it.
 - `src/endpoints/` mirrors the URL path: each node has `mod.rs` (`config()`), and leaves have
   `endpoint.rs` (handler + `trigger_*` + error enum implementing `ResponseError` and
@@ -104,8 +119,8 @@ mounted routes and catches it.
   `endpoints::db_error::classify_db_error("<resource>/<op>", &e)` and map each `DbFailure` (`NotFound`, `Conflict`,
   `InvalidReference`, `Internal`) to a variant of the handler's error enum. Never `.map_err(|_| ...)`: the
   helper logs the cause, `Internal` at `error` (MAIR-421).
-- Logs go through `tracing` (`tracing_subscriber` set up first thing in `main.rs`, level from `RUST_LOG`,
-  default `info`), which also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
+- Logs go through `tracing`, set up by the lib's `init_telemetry` (see "Logs and observability" below), which
+  also carries actix's request log. No `println!` / `eprintln!` in new code. Responses carry
   `X-Content-Type-Options: nosniff` (`DefaultHeaders` in `main.rs`).
 - Ids: path and body ids are `u64` in the API and `INT4` in Postgres. Convert with the lib's `id_to_sql` /
   `id_from_sql` (or `i32::try_from` answering `400`), never `as i32`: `2^32 + 1` would wrap to `1` and alias
@@ -123,6 +138,32 @@ mounted routes and catches it.
   transaction (MAIR-420): `let mut tx = state.get_smart_db().begin().await?;`, the queries on `tx`, then
   `tx.commit().await?`. An early `?` drops `tx` and rolls back what already ran; never compensate by hand with a
   `DELETE` whose error is ignored. A single CTE statement is fine too. `tests/transaction_test.rs` is the example.
+
+## Logs and observability (MAIR-503)
+
+Logs and traces come from `mairie360_api_lib::logging::telemetry` (feature `otel`), shared by every API: `main.rs`
+only calls `init_telemetry("template-api")` (`change api name`: the API's service name, e.g. `project-api`) first
+thing and keeps the guard until exit. Read the lib for the details.
+
+- Logs on stdout in the format of every API: coloured text (`RUST_LOG`, default `info`), one JSON object per line
+  with `LOG_FORMAT=json`. The request root span is hidden from them (it holds the client address and query string).
+- Traces over OTLP/HTTP, opt-in: nothing is exported unless `OTEL_EXPORTER_OTLP_ENDPOINT` (or
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) is set, `OTEL_SDK_DISABLED=true` forces it off, a failing exporter is
+  logged and never stops the API. The endpoint is an agent relaying to Scaleway Cockpit (OTel Collector or Grafana
+  Alloy, e.g. `http://alloy:4318`); `OTEL_SERVICE_NAME` defaults to the name given to `init_telemetry`. The
+  commented block of `docker-compose.yml` shows the variables.
+- `main.rs` wraps the app in the lib's `TracingLogger` next to the request log (`middleware::Logger`, kept), so
+  requests refused by `JwtMiddleware` get a span too. Root spans are named `<METHOD> <route pattern>` and continue
+  an incoming `traceparent`. The SQL appears as span **events** (`db.statement` with `$n` placeholders, never the
+  values). The lib's `Redact` drops `http.client_ip` and the query string before export: build test providers with
+  `telemetry::tracer_provider`, never `SdkTracerProvider::builder()`.
+- Never add `opentelemetry*` / `tracing-actix-web` / `tracing-opentelemetry` to `Cargo.toml`: use the lib's
+  re-exports (`telemetry::opentelemetry`, `telemetry::opentelemetry_sdk`), its versions are coupled.
+  `tracing-subscriber` is only a dev-dependency, for the test subscriber.
+- `tests/telemetry_test.rs` asserts the span of a request through `TracingLogger` and the JWT gate (status, route,
+  continued trace id, no query string, no client address) and of a `401`. A new API points it at one of its routes
+  and also checks the SQL events (see Project API's `tests/endpoints/telemetry.rs`); the redaction of logs and spans
+  is tested in the lib.
 
 ## CI and Renovate
 
@@ -145,3 +186,11 @@ a comment saying why it does not apply and when to drop it: no bare ignore, and 
 ## Pull request reviewers
 
 Every PR requests a review from the whole team, minus its author: `CarolinHugo`, `LAURETbenjamin`, `MathTek` and `Quentintnrl` (`gh pr create … --reviewer CarolinHugo,LAURETbenjamin,MathTek`). `.github/CODEOWNERS` makes GitHub request them automatically as well.
+
+## Postgres pool settings (MAIR-565)
+
+`mairie360_api_lib`'s `Database` (since 3.4.0) reads three optional env vars through `DbPoolConfig::from_env`:
+`DB_POOL_MIN_CONNECTIONS` (default 1, sqlx's was 0: the API keeps one connection open, so the first request after a
+pause no longer reconnects), `DB_POOL_MAX_CONNECTIONS` (default 10) and `DB_POOL_IDLE_TIMEOUT_SECS` (default 600). An
+invalid value falls back to its default with a `warn!`. Per-instance values are set by the `Deploiment` chart
+(`APIs.dbPool`); the compose stacks set none and use the defaults. Nothing to wire in the template: the lib does it.
