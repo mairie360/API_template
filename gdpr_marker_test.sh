@@ -51,7 +51,12 @@ echo "==> [2/4] Waiting for the journey to finish..."
 docker compose -f "$COMPOSE_FILE" wait gdpr-marker
 
 echo "==> [3/4] Saving the logs of every container..."
-docker compose -f "$COMPOSE_FILE" logs --no-color > "$REPORT_DIR/containers.log"
+# Missing or truncated logs would let the scan below pass as clean: stop instead.
+if ! docker compose -f "$COMPOSE_FILE" logs --no-color > "$REPORT_DIR/containers.log" \
+    || [ ! -s "$REPORT_DIR/containers.log" ]; then
+    echo "Could not save the container logs: the marker search would not be reliable."
+    exit 1
+fi
 docker compose -f "$COMPOSE_FILE" logs --no-color --tail 40 gdpr-marker
 docker compose -f "$COMPOSE_FILE" down -v
 
