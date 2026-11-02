@@ -69,7 +69,7 @@ services:
       - backend
 
   seeder:
-    image: postgres:18-alpine
+    image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -84,7 +84,7 @@ services:
       - backend
 
   redis:
-    image: redis:8.4.0-bookworm
+    image: redis:8.4.0-bookworm@sha256:c22af04bb576503bf16b3e34a1fd2fd82de0f765afd866d2e380145e0af30d78
     container_name: mairie360-redis-template-api-gdpr # change api name
     restart: always
     expose:
@@ -129,7 +129,7 @@ services:
   # healthcheck: this sidecar polls /ready (Postgres and Redis reachable) and the services that
   # need the API wait for it to complete instead.
   template-ready: # change api name
-    image: curlimages/curl:latest
+    image: curlimages/curl:latest@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
     depends_on:
       template: # change api name
         condition: service_started
@@ -140,7 +140,7 @@ services:
       - backend
 
   gdpr-marker:
-    image: node:26-bookworm-slim
+    image: node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9
     user: "${GDPR_UID:-0}:${GDPR_GID:-0}"
     depends_on:
       template-ready: # change api name
