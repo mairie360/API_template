@@ -26,6 +26,9 @@ x-common-env: &common-env
   # Serves Swagger UI and /api-docs/openapi.json: dev and test stacks only, never production.
   API_DOCS_ENABLED: "true"
 
+# Own project name: the default one (the folder) is shared with the repo's other compose files,
+# whose postgres-data / redis-data volumes `down -v` would otherwise delete.
+name: template-api-gdpr-sim
 services:
   postgres:
     image: ghcr.io/mairie360/database:dev-949384c
