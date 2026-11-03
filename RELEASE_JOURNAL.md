@@ -1,66 +1,60 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "7071f055d603cbc6e8932bfd022894d8dcd667aa", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-03 00:08 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "bb7b1bcd269b451eb575d85f374251394d26c00c", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-03 01:33 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `7071f05` | 2026-11-03 00:08 UTC |
+| dev | — | `bb7b1bc` | 2026-11-03 01:33 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
 #### Nouveautés
-- Chaque requête produit un span OpenTelemetry (méthode et route), y compris les requêtes refusées par le JWT (401), qui poursuit le `traceparent` entrant. L'export OTLP/HTTP n'est actif que si `OTEL_EXPORTER_OTLP_ENDPOINT` est défini, et `LOG_FORMAT=json` passe les logs en JSON. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
+- Journaux et traces : `LOG_FORMAT=json` émet une ligne JSON par événement. L'export OTLP/HTTP des traces OpenTelemetry n'est activé que si `OTEL_EXPORTER_OTLP_ENDPOINT` (ou `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`) est défini. Chaque requête a un span racine `<MÉTHODE> <route>` qui continue un `traceparent` entrant. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
 
 #### Changements de comportement
-- Le log de requête ne contient plus la query string : le middleware `Logger::default()` est remplacé par `request_logger()`, qui logue l'adresse client, la méthode, le chemin sans query, le statut, la taille et la durée (d'après la description de la PR, le diff tronqué ne permet pas de le vérifier ligne à ligne). Un appelant qui lisait ces champs dans les logs doit s'adapter. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
-- Les erreurs de `mairie360_api_lib` 4.2.0 ne reprennent plus les valeurs reçues : les erreurs de base sont décrites par SQLSTATE, contrainte, table et colonne au lieu du message Postgres. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
-
-#### Corrections
-- Données personnelles dans les logs : avant, la query string des requêtes et les valeurs citées dans les erreurs pouvaient apparaître dans les logs ; maintenant elles n'y figurent plus, ce que vérifie le test du marqueur RGPD. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
-- Image d'exécution : avant, runtime `gcr.io/distroless/cc-debian12` avec `libssl3` non corrigée et builder `rust:1.99-slim-bookworm` ; maintenant runtime `cc-debian13:nonroot` et builder `rust:1.99-slim-trixie`, pour corriger CVE-2026-84782. (MAIR-741, [#126](https://github.com/mairie360/API_template/pull/126))
-- Alertes RustSec : avant, `zstd`, `ctutils`, `rand` et `spin` en versions vulnérables ; maintenant versions corrigées, et RUSTSEC-2026-0387 (crypto-bigint) ignoré avec sa justification dans `.cargo/audit.toml`. (MAIR-740, [#125](https://github.com/mairie360/API_template/pull/125))
+- Authentification : l'API ne valide plus les sessions avec un secret `JWT_SECRET` partagé. Elle attend `JWT_PUBLIC_KEY` (clé publique Ed25519 de Core_API) et démarre sans `JWT_SECRET`. Sans `JWT_PUBLIC_KEY`, le démarrage échoue. Quand `JWT_SECRET` est absent, tout jeton HS256 est refusé (401). Tant qu'il est défini, la lib accepte encore les HS256 signés avec lui (transition). Les appelants doivent présenter des jetons EdDSA signés par Core. Les stacks de test exigent `JWT_PUBLIC_KEY` et n'utilisent plus de jeton admin figé. (MAIR-680, [#139](https://github.com/mairie360/API_template/pull/139))
+- Journaux des requêtes : la ligne de requête n'inclut plus la query string ni le `Referer`. Seuls l'adresse client, la méthode, le chemin sans query, le statut, la taille et la durée sont journalisés. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
 
 #### Technique
-- CI : `cicd.yml` et `gdpr-pr.yml` appellent mairie360/CICD v5.2.2 (passage depuis v4.12.x puis v5.2.0) ; nouveau check « GDPR checklist » sur les PR ; test `tests/mair_771_cicd_version.rs`. (MAIR-771 / MAIR-295, [#133](https://github.com/mairie360/API_template/pull/133), [#70](https://github.com/mairie360/API_template/pull/70))
-- Images Docker épinglées par digest (mises à jour Renovate de rust, nginx, node, postgres, redis, curl, k6, newman, zap) et Node 26 pour le marqueur RGPD. ([#121](https://github.com/mairie360/API_template/pull/121), [#134](https://github.com/mairie360/API_template/pull/134), [#138](https://github.com/mairie360/API_template/pull/138))
-- Dépendances : `actix-web` 4.18.0 et 4.18.1, `tokio` 1.54.1, `log` 0.4.35 en dev, `mairie360_api_lib` 4.3.0 (le diff de cette dernière PR est vide dans le dépôt, à vérifier). ([#113](https://github.com/mairie360/API_template/pull/113), [#114](https://github.com/mairie360/API_template/pull/114), [#109](https://github.com/mairie360/API_template/pull/109), [#120](https://github.com/mairie360/API_template/pull/120), [#130](https://github.com/mairie360/API_template/pull/130))
-- Tests et documentation : `tests/telemetry_test.rs`, `mair_741_every_image_runs_on_debian_13`, marqueur RGPD (`gdpr-marker.yaml`, `gdpr_marker_test.sh`, `docker-compose-gdpr-marker.yml`), section `CLAUDE.md` sur le pool Postgres `DB_POOL_*` (documentation seule). (MAIR-290, MAIR-503, MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82))
+- Images Docker : builder, runtime et image de développement passent sur Debian 13 (`trixie`), avec distroless `cc-debian13` (MAIR-741, [#126](https://github.com/mairie360/API_template/pull/126)). Un test `mair_741_every_image_runs_on_debian_13` vérifie la release Debian de chaque image.
+- Digests d'images épinglés ou mis à jour par Renovate : rust, postgres, redis, curl, k6, newman, ZAP, nginx et node 26 ([#121](https://github.com/mairie360/API_template/pull/121), [#134](https://github.com/mairie360/API_template/pull/134), [#138](https://github.com/mairie360/API_template/pull/138), [#118](https://github.com/mairie360/API_template/pull/118), [#117](https://github.com/mairie360/API_template/pull/117), [#116](https://github.com/mairie360/API_template/pull/116), [#115](https://github.com/mairie360/API_template/pull/115), [#111](https://github.com/mairie360/API_template/pull/111), [#108](https://github.com/mairie360/API_template/pull/108), [#107](https://github.com/mairie360/API_template/pull/107), [#104](https://github.com/mairie360/API_template/pull/104), [#103](https://github.com/mairie360/API_template/pull/103), [#102](https://github.com/mairie360/API_template/pull/102)).
+- Workflows CICD : montée progressive de v4.3.x à v5.2.2, avec la garde `tests/mair_771_cicd_version.rs` (MAIR-771, [#133](https://github.com/mairie360/API_template/pull/133)). Ajout du workflow de checklist RGPD des PR (MAIR-295, [#70](https://github.com/mairie360/API_template/pull/70)).
+- Dépendances Rust : actix-web 4.18.x ([#113](https://github.com/mairie360/API_template/pull/113), [#114](https://github.com/mairie360/API_template/pull/114)), tokio 1.54.x ([#96](https://github.com/mairie360/API_template/pull/96), [#109](https://github.com/mairie360/API_template/pull/109)), log 0.4.35 ([#120](https://github.com/mairie360/API_template/pull/120)), utoipa-swagger-ui 10.0.2 ([#99](https://github.com/mairie360/API_template/pull/99)), mairie360_api_lib 4.2.1 puis 4.3.0 ([#122](https://github.com/mairie360/API_template/pull/122), [#130](https://github.com/mairie360/API_template/pull/130), diff absent du journal).
+- Audit RustSec (MAIR-740, [#125](https://github.com/mairie360/API_template/pull/125)) : mise à jour de Cargo.lock et ignore de RUSTSEC-2026-0387 dans `.cargo/audit.toml`.
+- Tests et documentation : tests de télémétrie (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79)), test du marqueur RGPD dans les journaux (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66)), documentation du pool Postgres (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)), tests JWT (MAIR-680, [#139](https://github.com/mairie360/API_template/pull/139)).
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
-#### Nouveautés
-- Chaque requête produit un span OpenTelemetry (méthode et route), y compris les requêtes refusées par le JWT (401), qui poursuit le `traceparent` entrant. L'export OTLP/HTTP n'est actif que si `OTEL_EXPORTER_OTLP_ENDPOINT` est défini, et `LOG_FORMAT=json` passe les logs en JSON. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
-
 #### Changements de comportement
-- Le log de requête ne contient plus la query string : `request_logger()` remplace `Logger::default()` (adresse client, méthode, chemin sans query, statut, taille, durée, selon la description de la PR). Un appelant qui lisait ces champs dans les logs doit s'adapter. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
-- Les erreurs de `mairie360_api_lib` 4.2.0 ne reprennent plus les valeurs reçues (SQLSTATE, contrainte, table et colonne au lieu du message Postgres). (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
+- Authentification : l'API ne valide plus les sessions avec un secret `JWT_SECRET` partagé. Elle attend `JWT_PUBLIC_KEY` (clé publique Ed25519 de Core_API) et démarre sans `JWT_SECRET`. Sans `JWT_PUBLIC_KEY`, le démarrage échoue. Quand `JWT_SECRET` est absent, tout jeton HS256 est refusé (401). Tant qu'il est défini, la lib accepte encore les HS256 signés avec lui (transition). Les appelants doivent présenter des jetons EdDSA signés par Core. Les stacks de test exigent `JWT_PUBLIC_KEY` et n'utilisent plus de jeton admin figé. (MAIR-680, [#139](https://github.com/mairie360/API_template/pull/139))
+- Journaux des requêtes : la ligne de requête n'inclut plus la query string ni le `Referer`. Seuls l'adresse client, la méthode, le chemin sans query, le statut, la taille et la durée sont journalisés. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
 
-#### Corrections
-- Données personnelles dans les logs : avant, la query string et les valeurs citées dans les erreurs pouvaient apparaître dans les logs ; maintenant elles n'y figurent plus. (MAIR-290, [#66](https://github.com/mairie360/API_template/pull/66))
-- Image d'exécution : avant, runtime distroless Debian 12 avec `libssl3` non corrigée ; maintenant `cc-debian13:nonroot` et builder `rust:1.99-slim-trixie` (CVE-2026-84782). (MAIR-741, [#126](https://github.com/mairie360/API_template/pull/126))
-- Alertes RustSec : avant, `zstd`, `ctutils`, `rand` et `spin` en versions vulnérables ; maintenant versions corrigées et RUSTSEC-2026-0387 ignoré avec justification. (MAIR-740, [#125](https://github.com/mairie360/API_template/pull/125))
+#### Nouveautés
+- Journaux et traces : `LOG_FORMAT=json` émet une ligne JSON par événement. L'export OTLP/HTTP des traces n'est activé que si `OTEL_EXPORTER_OTLP_ENDPOINT` est défini. Chaque requête a un span racine qui continue un `traceparent` entrant. (MAIR-503, [#79](https://github.com/mairie360/API_template/pull/79))
 
 #### Technique
-- CI : `cicd.yml` et `gdpr-pr.yml` appellent mairie360/CICD v5.2.2 ; nouveau check « GDPR checklist » sur les PR ; test `tests/mair_771_cicd_version.rs`. (MAIR-771, MAIR-295, [#133](https://github.com/mairie360/API_template/pull/133), [#70](https://github.com/mairie360/API_template/pull/70))
-- Images Docker épinglées par digest (mises à jour Renovate) et Node 26 pour le marqueur RGPD. ([#121](https://github.com/mairie360/API_template/pull/121), [#134](https://github.com/mairie360/API_template/pull/134))
-- Dépendances : `actix-web` 4.18.x, `tokio` 1.54.1, `log` 0.4.35 en dev, `mairie360_api_lib` 4.3.0 (diff vide dans le dépôt). ([#130](https://github.com/mairie360/API_template/pull/130), [#120](https://github.com/mairie360/API_template/pull/120))
-- Tests et documentation : `tests/telemetry_test.rs`, test Debian 13 des images, marqueur RGPD, section `CLAUDE.md` sur le pool Postgres (documentation seule). ([#82](https://github.com/mairie360/API_template/pull/82), [#66](https://github.com/mairie360/API_template/pull/66))
+- Images Docker : builder, runtime et image de développement passent sur Debian 13 (`trixie`), avec distroless `cc-debian13` (MAIR-741, [#126](https://github.com/mairie360/API_template/pull/126)).
+- Digests d'images épinglés ou mis à jour par Renovate (rust, postgres, redis, curl, k6, newman, ZAP, nginx, node 26) ([#121](https://github.com/mairie360/API_template/pull/121), [#134](https://github.com/mairie360/API_template/pull/134), [#138](https://github.com/mairie360/API_template/pull/138), [#118](https://github.com/mairie360/API_template/pull/118), [#117](https://github.com/mairie360/API_template/pull/117), [#116](https://github.com/mairie360/API_template/pull/116), [#115](https://github.com/mairie360/API_template/pull/115), [#111](https://github.com/mairie360/API_template/pull/111), [#108](https://github.com/mairie360/API_template/pull/108), [#107](https://github.com/mairie360/API_template/pull/107), [#104](https://github.com/mairie360/API_template/pull/104), [#103](https://github.com/mairie360/API_template/pull/103), [#102](https://github.com/mairie360/API_template/pull/102)).
+- Workflows CICD montés de v4.4.0 à v5.2.2, avec la garde `tests/mair_771_cicd_version.rs` (MAIR-771, [#133](https://github.com/mairie360/API_template/pull/133)). Ajout du workflow de checklist RGPD des PR (MAIR-295, [#70](https://github.com/mairie360/API_template/pull/70)).
+- Dépendances Rust : actix-web 4.18.x ([#113](https://github.com/mairie360/API_template/pull/113), [#114](https://github.com/mairie360/API_template/pull/114)), tokio 1.54.1 ([#109](https://github.com/mairie360/API_template/pull/109)), log 0.4.35 ([#120](https://github.com/mairie360/API_template/pull/120)), mairie360_api_lib 4.2.1 puis 4.3.0 ([#122](https://github.com/mairie360/API_template/pull/122), [#130](https://github.com/mairie360/API_template/pull/130), diff absent du journal).
+- Audit RustSec (MAIR-740, [#125](https://github.com/mairie360/API_template/pull/125)) : Cargo.lock et ignore de RUSTSEC-2026-0387 dans `.cargo/audit.toml`.
+- Tests et documentation : télémétrie (MAIR-503), marqueur RGPD dans les journaux (MAIR-290), pool Postgres (MAIR-565, [#82](https://github.com/mairie360/API_template/pull/82)), tests JWT (MAIR-680).
 
 ## Différence staging → prod (en staging, pas encore en prod)
 
 #### Technique
-- Montée de la référence mairie360/CICD dans `cicd.yml` vers v4.3.0, v4.3.1 puis v4.3.2 (journal des releases rédigé par Claude, côté CICD, sans effet visible sur l'API). (MAIR-571, [#95](https://github.com/mairie360/API_template/pull/95), [#97](https://github.com/mairie360/API_template/pull/97), [#98](https://github.com/mairie360/API_template/pull/98))
-- `cicd.yml` transmet désormais `ANTHROPIC_API_KEY`, `RELEASE_APP_ID` et `RELEASE_APP_PK` au workflow réutilisable. (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94))
-- Mises à jour `tokio` 1.54.0 et `utoipa-swagger-ui` 10.0.2 (diff vide dans le dépôt). ([#96](https://github.com/mairie360/API_template/pull/96), [#99](https://github.com/mairie360/API_template/pull/99))
+- Workflows CICD montés de v4.3.0 à v5.2.x pour les appels de release, avec transmission des secrets du journal de release (MAIR-571, [#94](https://github.com/mairie360/API_template/pull/94), [#95](https://github.com/mairie360/API_template/pull/95), [#97](https://github.com/mairie360/API_template/pull/97), [#98](https://github.com/mairie360/API_template/pull/98)).
+- Dépendances : tokio 1.54.0 ([#96](https://github.com/mairie360/API_template/pull/96)) et utoipa-swagger-ui 10.0.2 ([#99](https://github.com/mairie360/API_template/pull/99)).
 
 ## Historique des passages
 
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-03 01:33 UTC | dev | — | `bb7b1bc` | [run](https://github.com/mairie360/API_template/actions/runs/41559252705) |
 | 2026-11-03 00:08 UTC | dev | — | `7071f05` | [run](https://github.com/mairie360/API_template/actions/runs/41548546849) |
 | 2026-11-03 00:05 UTC | dev | — | `2d8f9b4` | [run](https://github.com/mairie360/API_template/actions/runs/41548120063) |
 | 2026-11-02 19:37 UTC | dev | — | `0d5dc99` | [run](https://github.com/mairie360/API_template/actions/runs/41508758912) |
