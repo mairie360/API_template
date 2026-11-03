@@ -35,7 +35,8 @@ tests need no Postman account: the `integration_tests` job runs `./integration_t
 the three `*_test.sh` stacks against the published `dev-<sha>` image (`IMAGE_REF`); locally the scripts
 build `<name>:local` from `development.Dockerfile` when `IMAGE_REF` is empty. Grow that
 collection with the API's endpoints (the template only checks `/health`, `/ready`, the OpenAPI document
-and the JWT gate; its pre-request script already forges HS256 JWTs with the stack's `JWT_SECRET`).
+and the JWT gate; `integration_test.sh` signs EdDSA JWTs with the run's key pair, `test_secrets.sh`, and passes
+them to newman).
 
 The ZAP and k6 stacks enforce an OpenAPI coverage gate (mairie360/CICD `tests/`, fetched into
 `cicd-repo/`): every operation of the spec must be reached authenticated by ZAP, and `load-test.js`
@@ -99,9 +100,12 @@ Remplir `API.md` et adapter `CLAUDE.md`.
   instead of staying up and answering `500`.
 - Swagger UI (`/swagger-ui/`) and `/api-docs/openapi.json` are served only when
   `API_DOCS_ENABLED=true`. Every compose stack sets it; production leaves it unset.
-- `JWT_SECRET` must be random, at least 32 bytes and distinct per instance: `mairie360_api_lib`
-  refuses to start with a short or well-known one. The compose stacks use the public test value
-  `b"secret"` with `JWT_ALLOW_WEAK_SECRET=true`; never set that variable in a deployment.
+- Session JWTs are signed by Core_API only (MAIR-680, Ed25519 / `EdDSA`): the API needs
+  `JWT_PUBLIC_KEY` (Core's public key as PEM, several `PUBLIC KEY` blocks during a rotation,
+  `\n`-escaped line breaks accepted) and no `JWT_SECRET`. While `JWT_SECRET` is set, HS256 tokens
+  signed with it are still accepted (transition): remove it once `JWT_PUBLIC_KEY` is deployed. The
+  dev stack uses the lib's public test key with `JWT_ALLOW_WEAK_SECRET=true` (never in a
+  deployment); the test scripts generate a fresh key pair per run (`test_secrets.sh`).
 
 ## Commandes
 

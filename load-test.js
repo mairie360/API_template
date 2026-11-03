@@ -19,12 +19,11 @@ import { createCoverage, loadSpec } from '/coverage.js';
 
 const BASE_URL = (__ENV.BASE_URL || 'http://localhost:3000').replace(/\/+$/, ''); // change port
 
-// Static HS256 JWT (sub=1, the Admin seeded by liquibase, role=admin, exp=2100, signed with the
-// stack's JWT_SECRET=b"secret"), the same one ZAP injects. Sent on every request so the `jwt`
-// operations under /api are exercised authenticated; public routes ignore it.
-const TOKEN =
-  __ENV.JWT ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo0MTAyNDQ0ODAwfQ.xCeBe_2QxRlXW8WXr3t6F69wbEHA93HbP_7l4OTJwjA';
+// EdDSA JWT of the Admin (sub=1, seeded by liquibase), signed by performance_test.sh with the run's
+// key like Core signs it (test_secrets.sh, MAIR-680), the same one ZAP injects. Sent on every
+// request so the `jwt` operations under /api are exercised authenticated; public routes ignore it.
+const TOKEN = __ENV.JWT;
+if (!TOKEN) throw new Error('JWT is not set: run ./performance_test.sh, which signs it');
 const AUTH = { Authorization: `Bearer ${TOKEN}` };
 
 // p(95) latency budget of each family of operations, in ms (reference machine).

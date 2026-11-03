@@ -6,12 +6,10 @@
 //! `main.rs` (`TracingLogger` around the `JwtMiddleware` scope). A new API points these tests at
 //! one of its own routes and adds the SQL check of Project API (`db.statement` span events).
 
-use std::sync::Once;
-use std::time::{SystemTime, UNIX_EPOCH};
+#[allow(dead_code)]
+mod session_tokens;
 
 use actix_web::{get, test, web, App, HttpResponse};
-use jsonwebtoken::{encode, EncodingKey, Header};
-use mairie360_api_lib::jwt_manager::Claims;
 use mairie360_api_lib::logging::telemetry::opentelemetry::{global, Value};
 use mairie360_api_lib::logging::telemetry::opentelemetry_sdk::propagation::TraceContextPropagator;
 use mairie360_api_lib::logging::telemetry::opentelemetry_sdk::trace::{
@@ -25,13 +23,10 @@ use serial_test::serial;
 use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::layer::SubscriberExt;
 
-const SECRET: &str = "telemetry-test-secret-of-at-least-32-bytes";
 /// Nothing listens on port 1: the tokens carry no session id, so Redis is never read.
 const UNREACHABLE_REDIS: &str = "redis://127.0.0.1:1";
 const PROBE: &str = "/api/v1/probe/";
 const PROBE_SPAN: &str = "GET /api/v1/probe/";
-
-static ENV: Once = Once::new();
 
 /// Stands for any business endpoint of the API.
 #[get("/v1/probe/")]
@@ -53,10 +48,7 @@ fn in_memory_tracing() -> (InMemorySpanExporter, SdkTracerProvider, DefaultGuard
 
 /// Sends `request` through `TracingLogger` and the JWT gate, and returns the exported root span.
 async fn span_of(request: test::TestRequest) -> SpanData {
-    ENV.call_once(|| {
-        std::env::set_var("JWT_SECRET", SECRET);
-        std::env::set_var("JWT_TIMEOUT", "3600");
-    });
+    session_tokens::set_jwt_env();
     let (_, pg_url) = get_shared_db().await;
     let state = AppState::new(UNREACHABLE_REDIS.to_owned(), pg_url.clone()).await;
     let (exporter, provider, _guard) = in_memory_tracing();
@@ -88,22 +80,8 @@ fn attribute<'a>(span: &'a SpanData, key: &str) -> Option<&'a Value> {
 }
 
 fn admin_token() -> String {
-    let exp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("clock after the epoch")
-        .as_secs()
-        + 3600;
-    let admin = ADMIN_ID.get().expect("seeded admin");
-    encode(
-        &Header::default(),
-        &Claims::new(
-            &admin.to_string(),
-            "user",
-            usize::try_from(exp).expect("fits"),
-        ),
-        &EncodingKey::from_secret(SECRET.as_bytes()),
-    )
-    .expect("encodable token")
+    // MAIR-680: an EdDSA token signed like Core signs it.
+    session_tokens::core_token(*ADMIN_ID.get().expect("seeded admin"))
 }
 
 #[actix_web::test]
