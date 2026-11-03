@@ -47,17 +47,20 @@ impl Modify for SecurityAddon {
             .components
             .get_or_insert_with(Default::default)
             .add_security_scheme(
-                BEARER_AUTH,
-                SecurityScheme::Http(
-                    HttpBuilder::new()
-                        .scheme(HttpAuthScheme::Bearer)
-                        .bearer_format("JWT")
-                        .description(Some(
-                            "HS256 JWT signed with the service's `JWT_SECRET` (claims `sub`, `role`, `exp`).",
-                        ))
-                        .build(),
-                ),
-            );
+            BEARER_AUTH,
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("JWT")
+                    .description(Some(
+                        "Session JWT issued by Core_API: EdDSA (Ed25519) signed with Core's key, \
+                             checked against `JWT_PUBLIC_KEY` (header `kid`; claims `sub`, `role`, \
+                             `exp`, `iss` `mairie360-core`, `aud` `mairie360`). HS256 tokens are \
+                             refused once `JWT_SECRET` is unset (MAIR-680).",
+                    ))
+                    .build(),
+            ),
+        );
         openapi.security = Some(vec![SecurityRequirement::new(
             BEARER_AUTH,
             Vec::<String>::new(),

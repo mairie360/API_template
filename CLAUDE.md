@@ -34,7 +34,7 @@ the API as its role too (`-D<role>_password` passed to Liquibase, Database image
 postgres, liquibase and the seeder keep the superuser.
 
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
-`/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path). The lib answers
+`/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path; an HS256 token or one without Core's audience since MAIR-680). The lib answers
 `401` for a bad token and `404` for a well-signed token naming an unknown or archived account. Every new endpoint
 adds its own negative tests next to the positive ones: non-admin on an admin route, another user reading /
 modifying / deleting the resource, an id in the body that differs from the id in the URL.
@@ -43,9 +43,11 @@ End-to-end harnesses (what CI runs on `main` after the dev release; each spins u
 standalone compose file, so env/image changes must be mirrored in all of them): `./integration_test.sh`
 (`docker-compose-integration.yml`, newman replaying `tests/postman/collection.json` with
 `tests/postman/environment.json`), `./security_test.sh` (ZAP), `./performance_test.sh` (k6). The
-collection is a Postman v2.1 export; its pre-request script forges HS256 JWTs with the stack's
-`JWT_SECRET` (`jwt_admin` for the seeded Admin, `jwt_agent` for user 2 from `init-test.sql`, plus a
-wrong-secret and an expired token), so a new API only adds requests for its endpoints. `baseUrl` is
+collection is a Postman v2.1 export; `integration_test.sh` signs its EdDSA JWTs with the run's key
+(`test_secrets.sh`, the Postman sandbox cannot sign EdDSA) and the compose file passes them with `--env-var`:
+`jwt_admin` for the seeded Admin, `jwt_agent` for user 2 from `init-test.sql`, plus `jwt_forged` (Core's `kid`,
+another key) and `jwt_expired`; the pre-request script only forges `jwt_hs256`, which must be refused (MAIR-680).
+A new API only adds requests for its endpoints. `baseUrl` is
 overridden with `--env-var` by the compose file; the committed default targets `localhost:3000`.
 
 In those three stacks the API service is `image: ${IMAGE_REF}` (no `build:` block): CI sets `IMAGE_REF` to the
@@ -55,8 +57,8 @@ published `ghcr.io/mairie360/<name>:dev-<sha>` image, and the scripts build `tem
 stack sets `API_DOCS_ENABLED=true` (shared `x-common-env` anchor): without it the API serves neither Swagger UI nor
 `/api-docs/openapi.json`, which newman, ZAP and k6 read.
 
-The ZAP scan is authenticated and blocking: `security-scan` waits for the `seeder`, injects a static admin JWT
-(`sub=1`, signed with `JWT_SECRET=b"secret"`, see the comment in `docker-compose-security.yml`) on every request
+The ZAP scan is authenticated and blocking: `security-scan` waits for the `seeder`, injects `ADMIN_JWT`
+(`sub=1`, an EdDSA token `security_test.sh` signs with the run's key, see `test_secrets.sh`) on every request
 and fails on any alert not set to `IGNORE` / `OUTOFSCOPE` in `.zap/rules.tsv` (no `-I`; the file is the same in
 every API). `-O http://<service>:<port>` is required, the spec's `servers` being unreachable from the ZAP
 container. ZAP fuzzes every field from the spec examples, so an example that does not deserialize or a `500`
@@ -72,10 +74,29 @@ never reached, or when an operation requiring `jwt` only got 401/403. The auth r
 `endpoints/swagger.rs::SecurityAddon` declares the `jwt` bearer scheme (the name every API uses) at the top level
 and marks every operation outside `/api/` public (`security: []`), mirroring `main.rs`.
 
-`mairie360_api_lib` (2.0+) refuses to start with a missing, short (< 32 bytes) or well-known `JWT_SECRET`
-(MAIR-428). The four compose stacks keep the public test value `b"secret"` (the static ZAP / k6 admin token and the
-Postman script sign with it) and set `JWT_ALLOW_WEAK_SECRET: "true"` next to it: without it the API panics at
-startup and every stack fails. A deployment never sets that variable and gets its own random secret.
+Session tokens (MAIR-680): only Core_API signs them, with its Ed25519 key (`EdDSA`, `kid` = RFC 7638 thumbprint,
+`iss` `mairie360-core`, `aud` `mairie360`). An API only gets `JWT_PUBLIC_KEY` (Core's public key as PEM, several
+`PUBLIC KEY` blocks during a rotation, `\n`-escaped line breaks accepted) and checks them with the lib (4.3.0). No
+`JWT_SECRET`: while it is set the lib still accepts HS256 tokens signed with it (transition), so a deployment
+removes it once `JWT_PUBLIC_KEY` is in place. The lib refuses to start without either variable, with a short or
+well-known `JWT_SECRET`, or with its committed test key. Tests sign their tokens like Core with the lib's test key
+pair (`tests/session_tokens/`, the process only holding `JWT_PUBLIC_KEY`); `tests/mair_680_jwt_config.rs` checks the
+public key alone is a valid configuration.
+
+- The dev stack (`docker-compose.yml`) defaults `JWT_PUBLIC_KEY` to the public half of the lib's test key pair
+  (`test_setup::http_setup::TEST_JWT_PUBLIC_KEY`) with `JWT_ALLOW_WEAK_SECRET: "true"`, which only that stack sets.
+  To call it, sign a token with the matching private key (in a subshell, so the keys do not stay exported):
+
+  ```bash
+  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.3.0/src/test_setup/fixtures/session_test_key.der)"
+   export JWT_PUBLIC_KEY="$(printf '%s\n' "$JWT_PRIVATE_KEY" | openssl pkey -pubout)"
+   source ./test_secrets.sh && sign_jwt 1 admin 3600)
+  ```
+- The test stacks (integration, ZAP, k6, GDPR marker) require `JWT_PUBLIC_KEY` (`${JWT_PUBLIC_KEY:?…}`): their
+  `*_test.sh` script sources `test_secrets.sh`, which generates a fresh Ed25519 key pair per run, exports the public
+  key and signs the runners' tokens with the private one like Core does (`sign_jwt <sub> <role> <ttl> [key]`,
+  `sign_jwt_file` for k6, whose WebCrypto cannot sign Ed25519). The private key never reaches the API and nothing is
+  committed: run the scripts rather than `docker compose up` on those files.
 
 `load-test.js` is built on `coverage.js`: one handler per operation (`"METHOD /path"`), k6 aborts at init
 otherwise; the spec it reads is the one served by the image under test, saved into the `openapi-spec` volume by
