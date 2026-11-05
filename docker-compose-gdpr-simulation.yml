@@ -143,7 +143,7 @@ services:
       - backend
 
   gdpr-simulation:
-    image: node:26-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9
+    image: node:26-bookworm-slim@sha256:c3aea913c1a6c89c0daf1e94867118e4aae4846b2c58c8cb9b33b80c5c695b8d
     user: "${GDPR_UID:-0}:${GDPR_GID:-0}"
     depends_on:
       template-ready: # change api name
