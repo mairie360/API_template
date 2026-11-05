@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "6990d872d42356e8ccded9c08a763cc4c141a796", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-05 18:19 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "1470ebd8e1910cee618dade11780194395534e3d", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-05 18:22 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `6990d87` | 2026-11-05 18:19 UTC |
+| dev | — | `1470ebd` | 2026-11-05 18:22 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust:1.99-slim-trixie docker digest to 7eab7ce (#149) ([#149](https://github.com/mairie360/API_template/pull/149))
 - chore(deps): update node.js to add5c17 (#148) ([#148](https://github.com/mairie360/API_template/pull/148))
 - chore(deps): update node.js to c3aea91 (#147) ([#147](https://github.com/mairie360/API_template/pull/147))
 - chore(deps): update rust:1.99-slim-trixie docker digest to 59f72d5 (#146) ([#146](https://github.com/mairie360/API_template/pull/146))
@@ -68,6 +69,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust:1.99-slim-trixie docker digest to 7eab7ce (#149) ([#149](https://github.com/mairie360/API_template/pull/149))
 - chore(deps): update node.js to add5c17 (#148) ([#148](https://github.com/mairie360/API_template/pull/148))
 - chore(deps): update node.js to c3aea91 (#147) ([#147](https://github.com/mairie360/API_template/pull/147))
 - chore(deps): update rust:1.99-slim-trixie docker digest to 59f72d5 (#146) ([#146](https://github.com/mairie360/API_template/pull/146))
@@ -133,6 +135,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-05 18:22 UTC | dev | — | `1470ebd` | [run](https://github.com/mairie360/API_template/actions/runs/42081747176) |
 | 2026-11-05 18:19 UTC | dev | — | `6990d87` | [run](https://github.com/mairie360/API_template/actions/runs/42081690123) |
 | 2026-11-05 09:44 UTC | dev | — | `de33523` | [run](https://github.com/mairie360/API_template/actions/runs/42003910852) |
 | 2026-11-05 03:54 UTC | dev | — | `db37243` | [run](https://github.com/mairie360/API_template/actions/runs/41963506300) |
