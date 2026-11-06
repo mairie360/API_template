@@ -139,6 +139,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-06 03:00 UTC | dev | — | `9ba1e0a` | [run](https://github.com/mairie360/API_template/actions/runs/42153041355) |
 | 2026-11-06 03:00 UTC | dev | — | `a06e22b` | [run](https://github.com/mairie360/API_template/actions/runs/42153078722) |
 | 2026-11-05 18:22 UTC | dev | — | `1470ebd` | [run](https://github.com/mairie360/API_template/actions/runs/42081747176) |
 | 2026-11-05 18:19 UTC | dev | — | `6990d87` | [run](https://github.com/mairie360/API_template/actions/runs/42081690123) |
