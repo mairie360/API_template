@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "a06e22bb559456525e95dc6fc55b65e211ca805c", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-06 03:00 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "e08b303603595b305ab760867fc97a39831b992a", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-06 11:02 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `a06e22b` | 2026-11-06 03:00 UTC |
+| dev | — | `e08b303` | 2026-11-06 11:02 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust:1.99-trixie docker digest to 8a4e90c (#152) ([#152](https://github.com/mairie360/API_template/pull/152))
 - chore(deps): update rust:1.99-trixie docker digest to bc2c4c2 (#151) ([#151](https://github.com/mairie360/API_template/pull/151))
 - chore(deps): update postgres:18-alpine docker digest to 123b179 (#150) ([#150](https://github.com/mairie360/API_template/pull/150))
 - chore(deps): update rust:1.99-slim-trixie docker digest to 7eab7ce (#149) ([#149](https://github.com/mairie360/API_template/pull/149))
@@ -71,6 +72,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust:1.99-trixie docker digest to 8a4e90c (#152) ([#152](https://github.com/mairie360/API_template/pull/152))
 - chore(deps): update rust:1.99-trixie docker digest to bc2c4c2 (#151) ([#151](https://github.com/mairie360/API_template/pull/151))
 - chore(deps): update postgres:18-alpine docker digest to 123b179 (#150) ([#150](https://github.com/mairie360/API_template/pull/150))
 - chore(deps): update rust:1.99-slim-trixie docker digest to 7eab7ce (#149) ([#149](https://github.com/mairie360/API_template/pull/149))
@@ -139,6 +141,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-06 11:02 UTC | dev | — | `e08b303` | [run](https://github.com/mairie360/API_template/actions/runs/42206203163) |
 | 2026-11-06 03:00 UTC | dev | — | `9ba1e0a` | [run](https://github.com/mairie360/API_template/actions/runs/42153041355) |
 | 2026-11-06 03:00 UTC | dev | — | `a06e22b` | [run](https://github.com/mairie360/API_template/actions/runs/42153078722) |
 | 2026-11-05 18:22 UTC | dev | — | `1470ebd` | [run](https://github.com/mairie360/API_template/actions/runs/42081747176) |
