@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "2d3d64eac12ce5e529e25e067cab76df0bafb504", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-12 11:24 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "0867db9b994821cd84621b94d31c08aa09da8c76", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-12 12:06 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `2d3d64e` | 2026-11-12 11:24 UTC |
+| dev | — | `0867db9` | 2026-11-12 12:06 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust crate mairie360_api_lib to v4.3.1 (#164) ([#164](https://github.com/mairie360/API_template/pull/164))
 - fix(deps): MAIR-740 APIs: fix the cargo audit RustSec alerts (actix-http, libsqlite3-sys) (#162) ([#162](https://github.com/mairie360/API_template/pull/162))
 - chore(deps): update rust crate actix-web to v4.19.0 (#159) ([#159](https://github.com/mairie360/API_template/pull/159))
 - chore(deps): update dependency mairie360/cicd to v5.6.0 (#158) ([#158](https://github.com/mairie360/API_template/pull/158))
@@ -80,6 +81,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust crate mairie360_api_lib to v4.3.1 (#164) ([#164](https://github.com/mairie360/API_template/pull/164))
 - fix(deps): MAIR-740 APIs: fix the cargo audit RustSec alerts (actix-http, libsqlite3-sys) (#162) ([#162](https://github.com/mairie360/API_template/pull/162))
 - chore(deps): update rust crate actix-web to v4.19.0 (#159) ([#159](https://github.com/mairie360/API_template/pull/159))
 - chore(deps): update dependency mairie360/cicd to v5.6.0 (#158) ([#158](https://github.com/mairie360/API_template/pull/158))
@@ -157,6 +159,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-12 12:06 UTC | dev | — | `0867db9` | [run](https://github.com/mairie360/API_template/actions/runs/43213290500) |
 | 2026-11-12 11:24 UTC | dev | — | `2d3d64e` | [run](https://github.com/mairie360/API_template/actions/runs/43206811219) |
 | 2026-11-06 11:02 UTC | dev | — | `e08b303` | [run](https://github.com/mairie360/API_template/actions/runs/42206203163) |
 | 2026-11-06 03:00 UTC | dev | — | `9ba1e0a` | [run](https://github.com/mairie360/API_template/actions/runs/42153041355) |
