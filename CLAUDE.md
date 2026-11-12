@@ -110,7 +110,7 @@ public key alone is a valid configuration.
   To call it, sign a token with the matching private key (in a subshell, so the keys do not stay exported):
 
   ```bash
-  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.3.0/src/test_setup/fixtures/session_test_key.der)"
+  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.3.1/src/test_setup/fixtures/session_test_key.der)"
    export JWT_PUBLIC_KEY="$(printf '%s\n' "$JWT_PRIVATE_KEY" | openssl pkey -pubout)"
    source ./test_secrets.sh && sign_jwt 1 admin 3600)
   ```
