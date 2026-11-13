@@ -30,7 +30,7 @@ code under test (`AppState`, query views) connects with `tests/common::api_db_ur
 Database's `api_grants.sql` then fails the test with `permission denied` (SQLSTATE `42501`): add the grant there,
 never connect the code under test as the superuser. `tests/db_role_test.rs` checks the role is the one in use, not
 a superuser, and is refused a table it is not granted (pick one for the new API's role). The compose stacks connect
-the API as its role too (`-D<role>_password` passed to Liquibase, Database image `dev-949384c` or later);
+the API as its role too (`-D<role>_password` passed to Liquibase, Database image `3.4.0` or later);
 postgres, liquibase and the seeder keep the superuser.
 
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
