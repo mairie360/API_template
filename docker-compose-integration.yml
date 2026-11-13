@@ -25,7 +25,7 @@ x-common-env: &common-env
 
 services:
   postgres:
-    image: ghcr.io/mairie360/database:dev-949384c
+    image: ghcr.io/mairie360/database:3.4.0
     restart: always
     container_name: mairie360-db-template-api-integration # change api name
     environment:
@@ -45,7 +45,7 @@ services:
       retries: 5
 
   liquibase:
-    image: ghcr.io/mairie360/liquibase-migrations:dev-949384c
+    image: ghcr.io/mairie360/liquibase-migrations:3.4.0
     container_name: mairie360-liquibase-template-api-integration # change api name
     depends_on:
       postgres:
