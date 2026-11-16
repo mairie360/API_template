@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "c2214fac6f4c241182eb39fbb6f21c05795db841", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 22:52 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "32bc0d6adeecbe9607274d5040a276a5395d3e5d", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 23:40 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `c2214fa` | 2026-11-16 22:52 UTC |
+| dev | — | `32bc0d6` | 2026-11-16 23:40 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- test: MAIR-1002 Speed up the APIs' CI tests (Rust cache, one database per test, optimized dependencies) ([#180](https://github.com/mairie360/API_template/pull/180))
 - chore(deps): update rust crate mairie360_api_lib to v4.4.0 (#182) ([#182](https://github.com/mairie360/API_template/pull/182))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#181) ([#181](https://github.com/mairie360/API_template/pull/181))
 - fix: MAIR-247 Translate the APIs' OpenAPI descriptions and messages into English (#173) ([#173](https://github.com/mairie360/API_template/pull/173))
@@ -94,6 +95,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- test: MAIR-1002 Speed up the APIs' CI tests (Rust cache, one database per test, optimized dependencies) ([#180](https://github.com/mairie360/API_template/pull/180))
 - chore(deps): update rust crate mairie360_api_lib to v4.4.0 (#182) ([#182](https://github.com/mairie360/API_template/pull/182))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#181) ([#181](https://github.com/mairie360/API_template/pull/181))
 - fix: MAIR-247 Translate the APIs' OpenAPI descriptions and messages into English (#173) ([#173](https://github.com/mairie360/API_template/pull/173))
@@ -185,6 +187,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-16 23:40 UTC | dev | — | `32bc0d6` | [run](https://github.com/mairie360/API_template/actions/runs/43977242790) |
 | 2026-11-16 22:52 UTC | dev | — | `c2214fa` | [run](https://github.com/mairie360/API_template/actions/runs/43971262490) |
 | 2026-11-16 22:42 UTC | dev | — | `9071a68` | [run](https://github.com/mairie360/API_template/actions/runs/43971115492) |
 | 2026-11-16 17:25 UTC | dev | — | `0ed2440` | [run](https://github.com/mairie360/API_template/actions/runs/43916588556) |
