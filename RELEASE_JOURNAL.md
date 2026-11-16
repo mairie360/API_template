@@ -1,16 +1,20 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "208753aa197301b083e919693e2fe919c215adc4", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-12 23:28 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "7e35341b121f9382a012be3bebd17df87bf35667", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 16:29 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `208753a` | 2026-11-12 23:28 UTC |
+| dev | — | `7e35341` | 2026-11-16 16:29 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- docs: MAIR-245 Rewrite the APIs' README and API.md (#161) ([#161](https://github.com/mairie360/API_template/pull/161))
+- chore(deps): update postgres:18-alpine docker digest to b6972e1 (#171) ([#171](https://github.com/mairie360/API_template/pull/171))
+- chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
+- chore(deps): update postgres:18-alpine docker digest to 1018733 (#169) ([#169](https://github.com/mairie360/API_template/pull/169))
 - chore(deps): update grafana/k6:latest docker digest to 3d8e5c7 (#166) ([#166](https://github.com/mairie360/API_template/pull/166))
 - chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cb87acc (#165) ([#165](https://github.com/mairie360/API_template/pull/165))
 - fix: MAIR-262 Integration tests - API functional tests, BFF business tests and regression tests (#163) ([#163](https://github.com/mairie360/API_template/pull/163))
@@ -84,6 +88,10 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- docs: MAIR-245 Rewrite the APIs' README and API.md (#161) ([#161](https://github.com/mairie360/API_template/pull/161))
+- chore(deps): update postgres:18-alpine docker digest to b6972e1 (#171) ([#171](https://github.com/mairie360/API_template/pull/171))
+- chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
+- chore(deps): update postgres:18-alpine docker digest to 1018733 (#169) ([#169](https://github.com/mairie360/API_template/pull/169))
 - chore(deps): update grafana/k6:latest docker digest to 3d8e5c7 (#166) ([#166](https://github.com/mairie360/API_template/pull/166))
 - chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cb87acc (#165) ([#165](https://github.com/mairie360/API_template/pull/165))
 - fix: MAIR-262 Integration tests - API functional tests, BFF business tests and regression tests (#163) ([#163](https://github.com/mairie360/API_template/pull/163))
@@ -165,6 +173,9 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-16 16:29 UTC | dev | — | `7e35341` | [run](https://github.com/mairie360/API_template/actions/runs/43905437243) |
+| 2026-11-13 00:41 UTC | dev | — | `f76e233` | [run](https://github.com/mairie360/API_template/actions/runs/43337418586) |
+| 2026-11-13 00:36 UTC | dev | — | `93baa4c` | [run](https://github.com/mairie360/API_template/actions/runs/43337366818) |
 | 2026-11-12 23:28 UTC | dev | — | `f7a1eb9` | [run](https://github.com/mairie360/API_template/actions/runs/43327026438) |
 | 2026-11-12 23:27 UTC | dev | — | `208753a` | [run](https://github.com/mairie360/API_template/actions/runs/43327070129) |
 | 2026-11-12 12:55 UTC | dev | — | `79b1e03` | [run](https://github.com/mairie360/API_template/actions/runs/43220733924) |
