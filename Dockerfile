@@ -3,7 +3,7 @@
 # Builder, runtime and development.Dockerfile share one Debian release (13 "trixie"), so the
 # binary links against the glibc and OpenSSL the runtime image ships (MAIR-741: Debian 12's
 # distroless libssl3 is unpatched).
-FROM rust:1.99-slim-trixie@sha256:f6c4a35d21dbb3c89d7a8d056c193e94fc09037f2b58dd858b09c39a47dd02d7 AS builder
+FROM rust:1.100-slim-trixie@sha256:e9d95b74296f7126a83ae3d041aeaba1ff4c478f13abc5cc034fcf7c131c3d4a AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
@@ -32,7 +32,7 @@ RUN touch src/main.rs src/lib.rs && cargo build --release --locked
 # Kubernetes can enforce `runAsNonRoot: true`. The API binds an unprivileged
 # port (`PORT`, 3000+) and never writes to the filesystem. The binary stays
 # owned by root (read + execute only for the runtime user).
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:cc66d222f0a7ec996b78a99fe76a969bc80b539a5016ad866c14d1949bc6d0ab
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:cb87acc574abe719b6e5c547384defa2f7b1f24af9605d3f618cf852495d8be2
 WORKDIR /app
 
 # change api name

@@ -1,16 +1,30 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "e08b303603595b305ab760867fc97a39831b992a", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-06 11:02 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "f76e23362d6883debb8589f1fe39526a3bf86187", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-13 00:41 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `e08b303` | 2026-11-06 11:02 UTC |
+| dev | — | `f76e233` | 2026-11-13 00:41 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
+- chore(deps): update postgres:18-alpine docker digest to 1018733 (#169) ([#169](https://github.com/mairie360/API_template/pull/169))
+- chore(deps): update grafana/k6:latest docker digest to 3d8e5c7 (#166) ([#166](https://github.com/mairie360/API_template/pull/166))
+- chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cb87acc (#165) ([#165](https://github.com/mairie360/API_template/pull/165))
+- fix: MAIR-262 Integration tests - API functional tests, BFF business tests and regression tests (#163) ([#163](https://github.com/mairie360/API_template/pull/163))
+- chore(deps): update rust crate mairie360_api_lib to v4.3.1 (#164) ([#164](https://github.com/mairie360/API_template/pull/164))
+- fix(deps): MAIR-740 APIs: fix the cargo audit RustSec alerts (actix-http, libsqlite3-sys) (#162) ([#162](https://github.com/mairie360/API_template/pull/162))
+- chore(deps): update rust crate actix-web to v4.19.0 (#159) ([#159](https://github.com/mairie360/API_template/pull/159))
+- chore(deps): update dependency mairie360/cicd to v5.6.0 (#158) ([#158](https://github.com/mairie360/API_template/pull/158))
+- chore(deps): update node.js to 5df7998 (#157) ([#157](https://github.com/mairie360/API_template/pull/157))
+- chore(deps): update postgres:18-alpine docker digest to 9ba53c7 (#156) ([#156](https://github.com/mairie360/API_template/pull/156))
+- chore(deps): update rust crate actix-web to v4.18.2 (#155) ([#155](https://github.com/mairie360/API_template/pull/155))
+- chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cc66d22 (#154) ([#154](https://github.com/mairie360/API_template/pull/154))
+- chore(deps): update rust:1.99-slim-trixie docker digest to f6c4a35 (#153) ([#153](https://github.com/mairie360/API_template/pull/153))
 - chore(deps): update rust:1.99-trixie docker digest to 8a4e90c (#152) ([#152](https://github.com/mairie360/API_template/pull/152))
 - chore(deps): update rust:1.99-trixie docker digest to bc2c4c2 (#151) ([#151](https://github.com/mairie360/API_template/pull/151))
 - chore(deps): update postgres:18-alpine docker digest to 123b179 (#150) ([#150](https://github.com/mairie360/API_template/pull/150))
@@ -72,6 +86,20 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
+- chore(deps): update postgres:18-alpine docker digest to 1018733 (#169) ([#169](https://github.com/mairie360/API_template/pull/169))
+- chore(deps): update grafana/k6:latest docker digest to 3d8e5c7 (#166) ([#166](https://github.com/mairie360/API_template/pull/166))
+- chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cb87acc (#165) ([#165](https://github.com/mairie360/API_template/pull/165))
+- fix: MAIR-262 Integration tests - API functional tests, BFF business tests and regression tests (#163) ([#163](https://github.com/mairie360/API_template/pull/163))
+- chore(deps): update rust crate mairie360_api_lib to v4.3.1 (#164) ([#164](https://github.com/mairie360/API_template/pull/164))
+- fix(deps): MAIR-740 APIs: fix the cargo audit RustSec alerts (actix-http, libsqlite3-sys) (#162) ([#162](https://github.com/mairie360/API_template/pull/162))
+- chore(deps): update rust crate actix-web to v4.19.0 (#159) ([#159](https://github.com/mairie360/API_template/pull/159))
+- chore(deps): update dependency mairie360/cicd to v5.6.0 (#158) ([#158](https://github.com/mairie360/API_template/pull/158))
+- chore(deps): update node.js to 5df7998 (#157) ([#157](https://github.com/mairie360/API_template/pull/157))
+- chore(deps): update postgres:18-alpine docker digest to 9ba53c7 (#156) ([#156](https://github.com/mairie360/API_template/pull/156))
+- chore(deps): update rust crate actix-web to v4.18.2 (#155) ([#155](https://github.com/mairie360/API_template/pull/155))
+- chore(deps): update gcr.io/distroless/cc-debian13:nonroot docker digest to cc66d22 (#154) ([#154](https://github.com/mairie360/API_template/pull/154))
+- chore(deps): update rust:1.99-slim-trixie docker digest to f6c4a35 (#153) ([#153](https://github.com/mairie360/API_template/pull/153))
 - chore(deps): update rust:1.99-trixie docker digest to 8a4e90c (#152) ([#152](https://github.com/mairie360/API_template/pull/152))
 - chore(deps): update rust:1.99-trixie docker digest to bc2c4c2 (#151) ([#151](https://github.com/mairie360/API_template/pull/151))
 - chore(deps): update postgres:18-alpine docker digest to 123b179 (#150) ([#150](https://github.com/mairie360/API_template/pull/150))
@@ -141,6 +169,13 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-13 00:41 UTC | dev | — | `f76e233` | [run](https://github.com/mairie360/API_template/actions/runs/43337418586) |
+| 2026-11-13 00:36 UTC | dev | — | `93baa4c` | [run](https://github.com/mairie360/API_template/actions/runs/43337366818) |
+| 2026-11-12 23:28 UTC | dev | — | `f7a1eb9` | [run](https://github.com/mairie360/API_template/actions/runs/43327026438) |
+| 2026-11-12 23:27 UTC | dev | — | `208753a` | [run](https://github.com/mairie360/API_template/actions/runs/43327070129) |
+| 2026-11-12 12:55 UTC | dev | — | `79b1e03` | [run](https://github.com/mairie360/API_template/actions/runs/43220733924) |
+| 2026-11-12 12:06 UTC | dev | — | `0867db9` | [run](https://github.com/mairie360/API_template/actions/runs/43213290500) |
+| 2026-11-12 11:24 UTC | dev | — | `2d3d64e` | [run](https://github.com/mairie360/API_template/actions/runs/43206811219) |
 | 2026-11-06 11:02 UTC | dev | — | `e08b303` | [run](https://github.com/mairie360/API_template/actions/runs/42206203163) |
 | 2026-11-06 03:00 UTC | dev | — | `9ba1e0a` | [run](https://github.com/mairie360/API_template/actions/runs/42153041355) |
 | 2026-11-06 03:00 UTC | dev | — | `a06e22b` | [run](https://github.com/mairie360/API_template/actions/runs/42153078722) |

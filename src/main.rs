@@ -7,7 +7,7 @@
     clippy::cast_sign_loss
 )]
 
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{web, App, HttpServer};
 
 use api_template::database::pg_url::build_pg_url; // change api name
 use api_template::endpoints::health::wait_for_postgres; // change api name
@@ -65,8 +65,8 @@ async fn main() -> std::io::Result<()> {
             // One span per request (MAIR-503), including those refused by `JwtMiddleware`; it
             // continues the `traceparent` of the BFF.
             .wrap(TracingLogger::default())
-            // Every response is JSON or plain text: forbid browsers from sniffing it as HTML.
-            .wrap(middleware::DefaultHeaders::new().add(("X-Content-Type-Options", "nosniff")))
+            // nosniff, and text/plain on the plain-text answers (MAIR-262).
+            .wrap(api_template::endpoints::headers::default_headers())
             // 1. Swagger UI and the OpenAPI document (public), only where explicitly enabled:
             //    dev and test stacks, never the production deployment.
             .configure(|cfg| {
