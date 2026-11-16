@@ -19,7 +19,6 @@ use mairie360_api_lib::logging::telemetry::{trace_layer, tracer_provider, Tracin
 use mairie360_api_lib::security::JwtMiddleware;
 use mairie360_api_lib::state::AppState;
 use mairie360_api_lib::test_setup::queries_setup::{get_shared_db, ADMIN_ID};
-use serial_test::serial;
 use tracing::subscriber::DefaultGuard;
 use tracing_subscriber::layer::SubscriberExt;
 
@@ -85,7 +84,6 @@ fn admin_token() -> String {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_request_is_exported_as_a_span_continuing_its_trace() {
     get_shared_db().await;
     let trace_id = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -113,7 +111,6 @@ async fn a_request_is_exported_as_a_span_continuing_its_trace() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_refused_request_still_gets_its_span() {
     // No JWT: `JwtMiddleware` refuses before the handler runs.
     let span = span_of(test::TestRequest::get().uri(PROBE)).await;
