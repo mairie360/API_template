@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "7e35341b121f9382a012be3bebd17df87bf35667", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 16:29 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "9a676d4e09b30f76e1eaa1060acd44f323d0f105", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 16:47 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `7e35341` | 2026-11-16 16:29 UTC |
+| dev | — | `9a676d4` | 2026-11-16 16:47 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust crate mairie360_api_lib to v4.3.2 (#174) ([#174](https://github.com/mairie360/API_template/pull/174))
 - docs: MAIR-245 Rewrite the APIs' README and API.md (#161) ([#161](https://github.com/mairie360/API_template/pull/161))
 - chore(deps): update postgres:18-alpine docker digest to b6972e1 (#171) ([#171](https://github.com/mairie360/API_template/pull/171))
 - chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
@@ -88,6 +89,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust crate mairie360_api_lib to v4.3.2 (#174) ([#174](https://github.com/mairie360/API_template/pull/174))
 - docs: MAIR-245 Rewrite the APIs' README and API.md (#161) ([#161](https://github.com/mairie360/API_template/pull/161))
 - chore(deps): update postgres:18-alpine docker digest to b6972e1 (#171) ([#171](https://github.com/mairie360/API_template/pull/171))
 - chore(deps): update rust docker tag to v1.100 (#170) ([#170](https://github.com/mairie360/API_template/pull/170))
@@ -173,6 +175,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-16 16:47 UTC | dev | — | `9a676d4` | [run](https://github.com/mairie360/API_template/actions/runs/43907043456) |
 | 2026-11-16 16:29 UTC | dev | — | `7e35341` | [run](https://github.com/mairie360/API_template/actions/runs/43905437243) |
 | 2026-11-13 00:41 UTC | dev | — | `f76e233` | [run](https://github.com/mairie360/API_template/actions/runs/43337418586) |
 | 2026-11-13 00:36 UTC | dev | — | `93baa4c` | [run](https://github.com/mairie360/API_template/actions/runs/43337366818) |
