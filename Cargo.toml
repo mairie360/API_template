@@ -18,7 +18,7 @@ utoipa-swagger-ui = { version = "10", features = ["actix-web"] }
 # Captures the request log of actix's `Logger` in the request_log tests (MAIR-290).
 log = "0.4"
 mairie360_api_lib = { version = "4.3.1", features = ["test-utils"] }
-jsonwebtoken = "11"
+jsonwebtoken = "12"
 serial_test = "4.0.0"
 url = "2.5"
 # Feeds the in-memory span exporter of `tests/telemetry_test.rs`.
