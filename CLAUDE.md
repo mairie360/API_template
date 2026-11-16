@@ -33,6 +33,16 @@ a superuser, and is refused a table it is not granted (pick one for the new API'
 the API as its role too (`-D<role>_password` passed to Liquibase, Database image `3.4.0` or later);
 postgres, liquibase and the seeder keep the superuser.
 
+Tests run in parallel (MAIR-1002): there is no `#[serial]`. The tests share the seeded database of
+`get_shared_db()` and keep to rows of their own (unique markers). A test that depends on, or changes, what the
+others see (a count of administrators, the whole `users` table, a sequence reset, a migration over every account)
+takes a database of its own with `mairie360_api_lib::test_setup::isolated::isolated_db()`: a copy of the seeded
+template (about 0.2 s), dropped when the guard is dropped, whose URLs are `db.url()` (superuser, fixtures) and
+`db.url_as("<role>")`. `isolated_redis()` gives a Redis client with its own key prefix on one container shared by
+the process. Only a test that sets a process environment variable keeps `#[serial(<group>)]`. The dependencies are
+compiled with `opt-level = 3` (`[profile.dev.package."*"]`): the code of the crate stays in debug, which is what the
+coverage measures, while argon2 and the TLS stack no longer dominate the run.
+
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
 `/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path; an HS256 token or one without Core's audience since MAIR-680). The lib answers
 `401` for a bad token and `404` for a well-signed token naming an unknown or archived account. Every new endpoint
@@ -110,7 +120,7 @@ public key alone is a valid configuration.
   To call it, sign a token with the matching private key (in a subshell, so the keys do not stay exported):
 
   ```bash
-  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.3.1/src/test_setup/fixtures/session_test_key.der)"
+  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.4.0/src/test_setup/fixtures/session_test_key.der)"
    export JWT_PUBLIC_KEY="$(printf '%s\n' "$JWT_PRIVATE_KEY" | openssl pkey -pubout)"
    source ./test_secrets.sh && sign_jwt 1 admin 3600)
   ```

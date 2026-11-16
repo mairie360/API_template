@@ -13,7 +13,6 @@ use mairie360_api_lib::smart_db::SmartDatabase;
 use mairie360_api_lib::state::AppState;
 use mairie360_api_lib::test_setup::queries_setup::get_shared_db;
 use serde::Deserialize;
-use serial_test::serial;
 
 use common::api_db_url;
 
@@ -95,13 +94,20 @@ impl ApiRequestDto for CountProbes {
 
 /// An `AppState` connected as the API role, once the superuser has created the probe table.
 async fn state() -> AppState {
-    let (_, superuser_url) = get_shared_db().await;
-    let fixtures = AppState::new(UNREACHABLE_REDIS.to_owned(), superuser_url.clone()).await;
-    let db = fixtures.get_smart_db();
-    db.execute(CreateProbeTable).await.expect("probe table");
-    db.execute(GrantProbeTable)
-        .await
-        .expect("probe table grant");
+    // The tests run in parallel (MAIR-1002): the probe table is created once, `CREATE TABLE IF NOT
+    // EXISTS` raced against itself fails on the catalog's unique index.
+    static PROBE_TABLE: tokio::sync::OnceCell<()> = tokio::sync::OnceCell::const_new();
+    PROBE_TABLE
+        .get_or_init(|| async {
+            let (_, superuser_url) = get_shared_db().await;
+            let fixtures = AppState::new(UNREACHABLE_REDIS.to_owned(), superuser_url.clone()).await;
+            let db = fixtures.get_smart_db();
+            db.execute(CreateProbeTable).await.expect("probe table");
+            db.execute(GrantProbeTable)
+                .await
+                .expect("probe table grant");
+        })
+        .await;
 
     AppState::new(UNREACHABLE_REDIS.to_owned(), api_db_url().await).await
 }
@@ -121,7 +127,6 @@ async fn create_pair(db: &SmartDatabase, label_a: &str, label_b: &str) -> Result
 }
 
 #[actix_web::test]
-#[serial]
 async fn committed_writes_are_all_applied() {
     let state = state().await;
     let db = state.get_smart_db();
@@ -134,7 +139,6 @@ async fn committed_writes_are_all_applied() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_failing_write_rolls_back_the_writes_before_it() {
     let state = state().await;
     let db = state.get_smart_db();
@@ -150,7 +154,6 @@ async fn a_failing_write_rolls_back_the_writes_before_it() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn an_explicit_rollback_discards_the_writes() {
     let state = state().await;
     let db = state.get_smart_db();

@@ -14,7 +14,6 @@ use actix_web::{get, http::StatusCode, test, web, App, HttpResponse};
 use mairie360_api_lib::security::{AuthenticatedUser, JwtMiddleware};
 use mairie360_api_lib::state::AppState;
 use mairie360_api_lib::test_setup::queries_setup::{get_shared_db, ADMIN_ID, BOB_ID};
-use serial_test::serial;
 
 use common::api_db_url;
 use session_tokens::{
@@ -70,7 +69,6 @@ async fn admin_id() -> i32 {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_valid_token_reaches_the_endpoint_as_its_user() {
     let admin = admin_id().await;
     let (status, body) = call("/api/v1/whoami/", Some(&valid_token(admin))).await;
@@ -79,7 +77,6 @@ async fn a_valid_token_reaches_the_endpoint_as_its_user() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_request_without_token_is_refused() {
     assert_eq!(
         call("/api/v1/whoami/", None).await.0,
@@ -88,7 +85,6 @@ async fn a_request_without_token_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_token_signed_with_another_key_is_refused() {
     // MAIR-680: what a compromised service could sign, claiming Core's `kid`.
     let forged = sign_eddsa_with(
@@ -102,7 +98,6 @@ async fn a_token_signed_with_another_key_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn an_expired_token_is_refused() {
     let expired = sign_like_core(&core_claims(admin_id().await, now() - 3600));
     assert_eq!(
@@ -112,7 +107,6 @@ async fn an_expired_token_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn mair_680_runs_with_core_public_key_only() {
     set_jwt_env();
     assert!(std::env::var_os("JWT_SECRET").is_none());
@@ -125,7 +119,6 @@ async fn mair_680_runs_with_core_public_key_only() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn mair_680_an_hs256_token_is_refused_without_jwt_secret() {
     let admin = admin_id().await;
     // The secrets the stacks and tests used to share, and any other one: no JWT_SECRET here.
@@ -141,7 +134,6 @@ async fn mair_680_an_hs256_token_is_refused_without_jwt_secret() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn mair_680_a_token_without_core_audience_is_refused() {
     let admin = admin_id().await;
     let claims =
@@ -155,7 +147,6 @@ async fn mair_680_a_token_without_core_audience_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_malformed_token_is_refused() {
     assert_eq!(
         call("/api/v1/whoami/", Some("not.a.jwt")).await.0,
@@ -164,7 +155,6 @@ async fn a_malformed_token_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_token_of_an_unknown_user_is_refused() {
     // The lib answers 404 (`JWTCheckError::UnknownUser`): the token is well signed, the account
     // it names does not exist (or no longer does).
@@ -177,7 +167,6 @@ async fn a_token_of_an_unknown_user_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_token_of_an_archived_user_is_refused() {
     get_shared_db().await;
     let bob = *BOB_ID.get().expect("seeded archived user");
@@ -189,7 +178,6 @@ async fn a_token_of_an_archived_user_is_refused() {
 }
 
 #[actix_web::test]
-#[serial]
 async fn a_percent_encoded_path_does_not_bypass_the_gate() {
     // `%61` is `a`, `%2e%2e` is `..`: the router may resolve these to the protected route, the
     // gate must refuse them all the same.
