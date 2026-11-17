@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "32bc0d6adeecbe9607274d5040a276a5395d3e5d", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-16 23:40 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "a12eb66bad9277a96bd84ddb521fa86227facdb3", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-17 12:00 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `32bc0d6` | 2026-11-16 23:40 UTC |
+| dev | — | `a12eb66` | 2026-11-17 12:00 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update dependency mairie360/cicd to v5.11.0 (#183) ([#183](https://github.com/mairie360/API_template/pull/183))
 - test: MAIR-1002 Speed up the APIs' CI tests (Rust cache, one database per test, optimized dependencies) ([#180](https://github.com/mairie360/API_template/pull/180))
 - chore(deps): update rust crate mairie360_api_lib to v4.4.0 (#182) ([#182](https://github.com/mairie360/API_template/pull/182))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#181) ([#181](https://github.com/mairie360/API_template/pull/181))
@@ -95,6 +96,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update dependency mairie360/cicd to v5.11.0 (#183) ([#183](https://github.com/mairie360/API_template/pull/183))
 - test: MAIR-1002 Speed up the APIs' CI tests (Rust cache, one database per test, optimized dependencies) ([#180](https://github.com/mairie360/API_template/pull/180))
 - chore(deps): update rust crate mairie360_api_lib to v4.4.0 (#182) ([#182](https://github.com/mairie360/API_template/pull/182))
 - chore(deps): update dependency mairie360/cicd to v5.6.1 (#181) ([#181](https://github.com/mairie360/API_template/pull/181))
@@ -187,6 +189,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-17 12:00 UTC | dev | — | `a12eb66` | [run](https://github.com/mairie360/API_template/actions/runs/44076705927) |
 | 2026-11-16 23:40 UTC | dev | — | `32bc0d6` | [run](https://github.com/mairie360/API_template/actions/runs/43977242790) |
 | 2026-11-16 22:52 UTC | dev | — | `c2214fa` | [run](https://github.com/mairie360/API_template/actions/runs/43971262490) |
 | 2026-11-16 22:42 UTC | dev | — | `9071a68` | [run](https://github.com/mairie360/API_template/actions/runs/43971115492) |
@@ -236,5 +239,4 @@
 | 2026-10-20 18:52 UTC | staging | — | `84055a3` | [run](https://github.com/mairie360/API_template/actions/runs/39476062185) |
 | 2026-10-20 18:46 UTC | dev | — | `84055a3` | [run](https://github.com/mairie360/API_template/actions/runs/39476062185) |
 | 2026-10-19 20:29 UTC | staging | — | `4258372` | [run](https://github.com/mairie360/API_template/actions/runs/39316681288) |
-| 2026-10-19 20:23 UTC | dev | — | `4258372` | [run](https://github.com/mairie360/API_template/actions/runs/39316681288) |
 <!-- release-journal-history:end -->
