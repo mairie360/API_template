@@ -43,6 +43,10 @@ the process. Only a test that sets a process environment variable keeps `#[seria
 compiled with `opt-level = 3` (`[profile.dev.package."*"]`): the code of the crate stays in debug, which is what the
 coverage measures, while argon2 and the TLS stack no longer dominate the run.
 
+`tests/queries/mod.rs` is empty on purpose (MAIR-533): the `integration_test` binary has no test until the API gets its
+first query view, and each view then adds a `mod <name>;` there with a test against the database. An empty binary proves
+nothing; `routing_test.rs` fails when the contract has no operation, so a scaffold without routes cannot pass silently.
+
 Access denials are tested, not assumed (MAIR-419): `tests/auth_gate_test.rs` checks the JWT gate in front of
 `/api` (no token, forged, expired, malformed, unknown or archived account, percent-encoded path; an HS256 token or one without Core's audience since MAIR-680). The lib answers
 `401` for a bad token and `404` for a well-signed token naming an unknown or archived account. Every new endpoint
