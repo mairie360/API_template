@@ -23,6 +23,7 @@ x-common-env: &common-env
 services:
   postgres:
     image: ghcr.io/mairie360/database:${UPSTREAM_TAG:-dev}
+    pull_policy: always
     restart: always
     container_name: mairie360-db-template-api # change api name
     environment:
@@ -43,6 +44,7 @@ services:
 
   liquibase:
     image: ghcr.io/mairie360/liquibase-migrations:${UPSTREAM_TAG:-dev}
+    pull_policy: always
     container_name: mairie360-liquibase-template-api # change api name
     depends_on:
       postgres:
