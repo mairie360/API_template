@@ -241,8 +241,7 @@ overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
 and the README tells new APIs to swap it back. Don't propagate the automerge-all file to siblings.
 
-`auto-approve.yml` approves Renovate PRs on the PR author (`github.event.pull_request.user.login`, not
-`github.actor`), with `pull-requests: write` only and the action pinned by SHA. Both `Dockerfile`s pin their base
+`auto-approve.yml` calls the reusable auto-approval of mairie360/CICD (same tag on `uses:` and `cicd_version`), which approves a Renovate PR only while Renovate alone wrote and pushed it and takes the approval back after any other push; `pull-requests: write` only (`tests/mair_685_auto_approve.rs`). Both `Dockerfile`s pin their base
 images by digest (`tests/dockerfile_test.rs` enforces it) and build with `--locked`; the production one builds
 the dependencies in their own cached layer first (MAIR-427). Every advisory ignored in `.cargo/audit.toml` carries
 a comment saying why it does not apply and when to drop it: no bare ignore, and a patched version is taken with
