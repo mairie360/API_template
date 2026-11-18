@@ -1,16 +1,17 @@
 # Journal des releases — API_template
 
-<!-- release-journal-state {"dev": "3c7cfe3ff7e4fe307f1386395d5ade4f2a78c577", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-18 03:05 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
+<!-- release-journal-state {"dev": "2bf866893e958ea2eb47888f9a4863818c5f3f0f", "prod": "9e6fe42fd00d01d51e2bee1aa846c3d839255f60", "prod_tag": "v1.1.0", "staging": "84055a3fb610b31a09c7c5ba515793bc022a1e74", "updated": {"dev": "2026-11-18 03:06 UTC", "staging": "2026-10-20 18:52 UTC"}} -->
 > Tenu à jour par la CI (`mairie360/CICD`, action `release/release-journal`) à chaque passage en dev, staging et prod. Ne pas modifier à la main : le fichier est réécrit au passage suivant.
 
 | Environnement | Version | Commit | Mis à jour |
 | --- | --- | --- | --- |
 | prod | v1.1.0 | `9e6fe42` | — |
 | staging | — | `84055a3` | 2026-10-20 18:52 UTC |
-| dev | — | `3c7cfe3` | 2026-11-18 03:05 UTC |
+| dev | — | `2bf8668` | 2026-11-18 03:06 UTC |
 
 ## Ajouté sur main depuis la dernière release prod (v1.1.0)
 
+- chore(deps): update rust:1.100-trixie docker digest to 223cc32 (#187) ([#187](https://github.com/mairie360/API_template/pull/187))
 - chore(deps): update rust:1.100-slim-trixie docker digest to 6f14b2b (#186) ([#186](https://github.com/mairie360/API_template/pull/186))
 - docs: MAIR-533 Remove or reactivate the dead tests of the APIs ([#185](https://github.com/mairie360/API_template/pull/185))
 - feat: MAIR-998 Test stacks follow the moving upstream tag of the stage (#179) ([#179](https://github.com/mairie360/API_template/pull/179))
@@ -99,6 +100,7 @@
 
 ## Différence dev → staging (en dev, pas encore en staging)
 
+- chore(deps): update rust:1.100-trixie docker digest to 223cc32 (#187) ([#187](https://github.com/mairie360/API_template/pull/187))
 - chore(deps): update rust:1.100-slim-trixie docker digest to 6f14b2b (#186) ([#186](https://github.com/mairie360/API_template/pull/186))
 - docs: MAIR-533 Remove or reactivate the dead tests of the APIs ([#185](https://github.com/mairie360/API_template/pull/185))
 - feat: MAIR-998 Test stacks follow the moving upstream tag of the stage (#179) ([#179](https://github.com/mairie360/API_template/pull/179))
@@ -195,6 +197,7 @@
 <!-- release-journal-history:start -->
 | Date | Environnement | Version | Commit | Run |
 | --- | --- | --- | --- | --- |
+| 2026-11-18 03:06 UTC | dev | — | `2bf8668` | [run](https://github.com/mairie360/API_template/actions/runs/44226561689) |
 | 2026-11-18 03:05 UTC | dev | — | `3c7cfe3` | [run](https://github.com/mairie360/API_template/actions/runs/44226525608) |
 | 2026-11-17 17:07 UTC | dev | — | `09db229` | [run](https://github.com/mairie360/API_template/actions/runs/44131726194) |
 | 2026-11-17 13:56 UTC | dev | — | `0aa2209` | [run](https://github.com/mairie360/API_template/actions/runs/44095800096) |
@@ -244,5 +247,4 @@
 | 2026-10-22 02:37 UTC | dev | — | `cde04e4` | [run](https://github.com/mairie360/API_template/actions/runs/39711278450) |
 | 2026-10-22 02:31 UTC | dev | — | `d05c66f` | [run](https://github.com/mairie360/API_template/actions/runs/39711246658) |
 | 2026-10-21 15:41 UTC | dev | — | `7be1696` | [run](https://github.com/mairie360/API_template/actions/runs/39626092728) |
-| 2026-10-21 15:38 UTC | dev | — | `0c38529` | [run](https://github.com/mairie360/API_template/actions/runs/39625313777) |
 <!-- release-journal-history:end -->
