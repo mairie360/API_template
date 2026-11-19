@@ -121,7 +121,8 @@ impl Modify for RateLimitAddon {
                 &mut item.trace,
             ];
             for operation in operations.into_iter().flatten() {
-                if operation.security.as_ref().is_some_and(|s| !s.is_empty()) {
+                // `None` inherits the global `jwt` requirement; only `security: []` is public.
+                if operation.security.as_ref().is_none_or(|s| !s.is_empty()) {
                     operation
                         .responses
                         .responses

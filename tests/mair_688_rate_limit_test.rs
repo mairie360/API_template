@@ -87,3 +87,24 @@ async fn mair_688_each_user_has_their_own_budget_and_a_429_carries_retry_after()
         StatusCode::OK
     );
 }
+
+#[actix_web::test]
+async fn mair_688_the_429_is_documented_on_operations_inheriting_the_jwt_requirement() {
+    use api_template::endpoints::swagger::ApiDoc; // change api name
+    use utoipa::OpenApi;
+
+    let spec = ApiDoc::openapi();
+    for (path, item) in &spec.paths.paths {
+        let operations = [&item.get, &item.put, &item.post, &item.delete, &item.patch];
+        for operation in operations.into_iter().flatten() {
+            let public = operation.security.as_ref().is_some_and(Vec::is_empty);
+            if !public && path.starts_with("/api/") {
+                assert!(
+                    operation.responses.responses.contains_key("429"),
+                    "{path} does not document the 429"
+                );
+            }
+        }
+    }
+    // The template has no business route yet: the loop is a guard for the ones a new API adds.
+}
