@@ -124,7 +124,7 @@ public key alone is a valid configuration.
   To call it, sign a token with the matching private key (in a subshell, so the keys do not stay exported):
 
   ```bash
-  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.4.0/src/test_setup/fixtures/session_test_key.der)"
+  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.5.0/src/test_setup/fixtures/session_test_key.der)"
    export JWT_PUBLIC_KEY="$(printf '%s\n' "$JWT_PRIVATE_KEY" | openssl pkey -pubout)"
    source ./test_secrets.sh && sign_jwt 1 admin 3600)
   ```
@@ -163,7 +163,7 @@ deliberate errors included.
   `DB_*` (the Postgres URL goes through `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
   `/swagger-ui/` and the spec at `/api-docs/openapi.json` (the ZAP scan target) only when `API_DOCS_ENABLED=true`
   (never in production: consumers use the published package), mounts the public probes and
-  `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
+  `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware` and, inside it, in `rate_limit_middleware` (per user: `RATE_LIMIT_PER_SECOND`, default 20, `0` disables it, `RATE_LIMIT_BURST`, default 50, `429` with `Retry-After`, counters per pod; the ZAP, k6 and GDPR stacks disable it; `RateLimitAddon` in `swagger.rs` documents the `429`). On a `429` the lib logs the limiter key at `warn` (`User(<internal id>)`, or the address of an anonymous caller): kept on purpose, a pseudonymous id lets operations spot who loops; logs are internal and short-lived.
 - `src/endpoints/health.rs`: `GET /health` is the liveness probe (always `200 OK`, no dependency checked, so a
   Postgres outage does not restart every pod); `GET /ready` is the readiness probe (`SELECT 1` through
   `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
