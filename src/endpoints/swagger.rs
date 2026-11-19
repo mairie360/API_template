@@ -1,6 +1,8 @@
 use crate::endpoints::health::HealthDoc;
 use crate::endpoints::v1::doc::V1Doc;
+use utoipa::openapi::schema::{ObjectBuilder, Type};
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityRequirement, SecurityScheme};
+use utoipa::openapi::{ContentBuilder, ResponseBuilder};
 use utoipa::{Modify, OpenApi};
 
 /// Name of the JWT security scheme declared in the spec.
@@ -28,7 +30,7 @@ pub fn api_docs_enabled(value: Option<&str>) -> bool {
         (path = "/api/v1", api = V1Doc),
         (path = "/", api = HealthDoc),
     ),
-    modifiers(&SecurityAddon)
+    modifiers(&SecurityAddon, &RateLimitAddon)
 )]
 pub struct ApiDoc;
 
@@ -82,6 +84,49 @@ impl Modify for SecurityAddon {
             ];
             for operation in operations.into_iter().flatten() {
                 operation.security = Some(Vec::new());
+            }
+        }
+    }
+}
+
+/// Adds the `429` of the per-user rate limiter to every operation that requires a JWT: the limiter
+/// answers before any handler runs, so the handlers cannot declare it.
+struct RateLimitAddon;
+
+impl Modify for RateLimitAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let too_many_requests = ResponseBuilder::new()
+            .description(
+                "The caller sent more requests than their rate limit allows (per user, 20 per second \
+                 with bursts of 50 by default; the counters are kept per instance of the API). \
+                 `Retry-After` and `X-RateLimit-After` give the delay in seconds (at least 1).",
+            )
+            .content(
+                "text/plain",
+                ContentBuilder::new()
+                    .schema(Some(ObjectBuilder::new().schema_type(Type::String)))
+                    .example(Some(serde_json::json!("Too many requests, retry in 1s.")))
+                    .build(),
+            )
+            .build();
+        for item in openapi.paths.paths.values_mut() {
+            let operations = [
+                &mut item.get,
+                &mut item.put,
+                &mut item.post,
+                &mut item.delete,
+                &mut item.options,
+                &mut item.head,
+                &mut item.patch,
+                &mut item.trace,
+            ];
+            for operation in operations.into_iter().flatten() {
+                if operation.security.as_ref().is_some_and(|s| !s.is_empty()) {
+                    operation
+                        .responses
+                        .responses
+                        .insert("429".to_string(), too_many_requests.clone().into());
+                }
             }
         }
     }
