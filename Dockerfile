@@ -32,7 +32,7 @@ RUN touch src/main.rs src/lib.rs && cargo build --release --locked
 # Kubernetes can enforce `runAsNonRoot: true`. The API binds an unprivileged
 # port (`PORT`, 3000+) and never writes to the filesystem. The binary stays
 # owned by root (read + execute only for the runtime user).
-FROM gcr.io/distroless/cc-debian13:nonroot@sha256:cb87acc574abe719b6e5c547384defa2f7b1f24af9605d3f618cf852495d8be2
+FROM gcr.io/distroless/cc-debian13:nonroot@sha256:532c7a94f9e96ba9db75eb9388f4227751131c7cb0a411d1a8521af4096135de
 WORKDIR /app
 
 # change api name
