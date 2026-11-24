@@ -58,7 +58,7 @@ impl Modify for SecurityAddon {
                         "Session JWT issued by Core_API: EdDSA (Ed25519) signed with Core's key, \
                              checked against `JWT_PUBLIC_KEY` (header `kid`; claims `sub`, `role`, \
                              `exp`, `iss` `mairie360-core`, `aud` `mairie360`). HS256 tokens are \
-                             refused once `JWT_SECRET` is unset (MAIR-680).",
+                             always refused (MAIR-680).",
                     ))
                     .build(),
             ),

@@ -112,10 +112,9 @@ and marks every operation outside `/api/` public (`security: []`), mirroring `ma
 
 Session tokens (MAIR-680): only Core_API signs them, with its Ed25519 key (`EdDSA`, `kid` = RFC 7638 thumbprint,
 `iss` `mairie360-core`, `aud` `mairie360`). An API only gets `JWT_PUBLIC_KEY` (Core's public key as PEM, several
-`PUBLIC KEY` blocks during a rotation, `\n`-escaped line breaks accepted) and checks them with the lib (4.3.0). No
-`JWT_SECRET`: while it is set the lib still accepts HS256 tokens signed with it (transition), so a deployment
-removes it once `JWT_PUBLIC_KEY` is in place. The lib refuses to start without either variable, with a short or
-well-known `JWT_SECRET`, or with its committed test key. Tests sign their tokens like Core with the lib's test key
+`PUBLIC KEY` blocks during a rotation, `\n`-escaped line breaks accepted) and checks them with the lib.
+Since lib 6.0.0 `JWT_PUBLIC_KEY` is required, `JWT_SECRET` is no longer read and every HS256 token is refused.
+The lib refuses to start without `JWT_PUBLIC_KEY` or with its committed test key. Tests sign their tokens like Core with the lib's test key
 pair (`tests/session_tokens/`, the process only holding `JWT_PUBLIC_KEY`); `tests/mair_680_jwt_config.rs` checks the
 public key alone is a valid configuration.
 
