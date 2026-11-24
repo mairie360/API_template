@@ -24,6 +24,8 @@ x-common-env: &common-env
   DB_PORT: 5432
   # Serves Swagger UI and /api-docs/openapi.json: dev and test stacks only, never production.
   API_DOCS_ENABLED: "true"
+  # The load, the scan and the marker run flood the API with a few users: no per-user quota.
+  RATE_LIMIT_PER_SECOND: "0"
 
 services:
   postgres:
@@ -71,7 +73,7 @@ services:
       - backend
 
   seeder:
-    image: postgres:18-alpine@sha256:b6972e1115a4ff8eba5d7f7d19184926d1e16d7d1136ae1e1a7ebf286da0f015
+    image: postgres:19-alpine@sha256:cac45fb483caee3668946088a1c0532db89d5285c28dbfeac889b4068296e06f
     depends_on:
       liquibase:
         condition: service_completed_successfully
@@ -141,7 +143,7 @@ services:
       - backend
 
   gdpr-marker:
-    image: node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1
+    image: node:26-bookworm-slim@sha256:b822af76043e2656ffc172072036fe0968a3c09a692e4ad05eb9348ad5dbdf4c
     user: "${GDPR_UID:-0}:${GDPR_GID:-0}"
     depends_on:
       template-ready: # change api name

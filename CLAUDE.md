@@ -112,10 +112,9 @@ and marks every operation outside `/api/` public (`security: []`), mirroring `ma
 
 Session tokens (MAIR-680): only Core_API signs them, with its Ed25519 key (`EdDSA`, `kid` = RFC 7638 thumbprint,
 `iss` `mairie360-core`, `aud` `mairie360`). An API only gets `JWT_PUBLIC_KEY` (Core's public key as PEM, several
-`PUBLIC KEY` blocks during a rotation, `\n`-escaped line breaks accepted) and checks them with the lib (4.3.0). No
-`JWT_SECRET`: while it is set the lib still accepts HS256 tokens signed with it (transition), so a deployment
-removes it once `JWT_PUBLIC_KEY` is in place. The lib refuses to start without either variable, with a short or
-well-known `JWT_SECRET`, or with its committed test key. Tests sign their tokens like Core with the lib's test key
+`PUBLIC KEY` blocks during a rotation, `\n`-escaped line breaks accepted) and checks them with the lib.
+Since lib 6.0.0 `JWT_PUBLIC_KEY` is required, `JWT_SECRET` is no longer read and every HS256 token is refused.
+The lib refuses to start without `JWT_PUBLIC_KEY` or with its committed test key. Tests sign their tokens like Core with the lib's test key
 pair (`tests/session_tokens/`, the process only holding `JWT_PUBLIC_KEY`); `tests/mair_680_jwt_config.rs` checks the
 public key alone is a valid configuration.
 
@@ -124,7 +123,7 @@ public key alone is a valid configuration.
   To call it, sign a token with the matching private key (in a subshell, so the keys do not stay exported):
 
   ```bash
-  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.4.0/src/test_setup/fixtures/session_test_key.der)"
+  (export JWT_PRIVATE_KEY="$(openssl pkey -inform DER -in ~/.cargo/registry/src/*/mairie360_api_lib-4.5.0/src/test_setup/fixtures/session_test_key.der)"
    export JWT_PUBLIC_KEY="$(printf '%s\n' "$JWT_PRIVATE_KEY" | openssl pkey -pubout)"
    source ./test_secrets.sh && sign_jwt 1 admin 3600)
   ```
@@ -163,7 +162,7 @@ deliberate errors included.
   `DB_*` (the Postgres URL goes through `database::pg_url::build_pg_url`, which percent-encodes user, password and database name), serves Swagger UI at
   `/swagger-ui/` and the spec at `/api-docs/openapi.json` (the ZAP scan target) only when `API_DOCS_ENABLED=true`
   (never in production: consumers use the published package), mounts the public probes and
-  `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware`.
+  `endpoints::config` under `/api` wrapped in the lib's `JwtMiddleware` and, inside it, in `rate_limit_middleware` (per user: `RATE_LIMIT_PER_SECOND`, default 20, `0` disables it, `RATE_LIMIT_BURST`, default 50, `429` with `Retry-After`, counters per pod; the ZAP, k6 and GDPR stacks disable it; `RateLimitAddon` in `swagger.rs` documents the `429`). On a `429` the lib logs the limiter key at `warn` (`User(<internal id>)`, or the address of an anonymous caller): kept on purpose, a pseudonymous id lets operations spot who loops; logs are internal and short-lived.
 - `src/endpoints/health.rs`: `GET /health` is the liveness probe (always `200 OK`, no dependency checked, so a
   Postgres outage does not restart every pod); `GET /ready` is the readiness probe (`SELECT 1` through
   `database::ping` and a Redis read, 2 s timeout each, `503 not ready: <deps>` otherwise). Point Kubernetes'
@@ -241,8 +240,7 @@ overrides the org preset to automerge everything (majors, 0.x, prod `Dockerfile`
 template-only: real APIs keep the standard config (org preset + `cicd_version` custom manager),
 and the README tells new APIs to swap it back. Don't propagate the automerge-all file to siblings.
 
-`auto-approve.yml` approves Renovate PRs on the PR author (`github.event.pull_request.user.login`, not
-`github.actor`), with `pull-requests: write` only and the action pinned by SHA. Both `Dockerfile`s pin their base
+`auto-approve.yml` calls the reusable auto-approval of mairie360/CICD (same tag on `uses:` and `cicd_version`), which approves a Renovate PR only while Renovate alone wrote and pushed it and takes the approval back after any other push; `pull-requests: write` only (`tests/mair_685_auto_approve.rs`). Both `Dockerfile`s pin their base
 images by digest (`tests/dockerfile_test.rs` enforces it) and build with `--locked`; the production one builds
 the dependencies in their own cached layer first (MAIR-427). Every advisory ignored in `.cargo/audit.toml` carries
 a comment saying why it does not apply and when to drop it: no bare ignore, and a patched version is taken with
