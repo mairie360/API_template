@@ -3,7 +3,7 @@
 # Builder, runtime and development.Dockerfile share one Debian release (13 "trixie"), so the
 # binary links against the glibc and OpenSSL the runtime image ships (MAIR-741: Debian 12's
 # distroless libssl3 is unpatched).
-FROM rust:1.100-slim-trixie@sha256:51fdc80ccc3fb83bf14481f2cd8d0d11703eeb9f416ab47476c32a793a822307 AS builder
+FROM rust:1.100-slim-trixie@sha256:3b199fd6db7d709274df56565b8f4003f9e30d7bfcff9d53148c86053b7855e2 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
