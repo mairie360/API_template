@@ -143,7 +143,7 @@ services:
       - backend
 
   gdpr-marker:
-    image: node:26-bookworm-slim@sha256:b822af76043e2656ffc172072036fe0968a3c09a692e4ad05eb9348ad5dbdf4c
+    image: node:26-bookworm-slim@sha256:0042e17d232a87a2cd485be1da7900fca4d10a4ad11b29e9285da1d2e54798c9
     user: "${GDPR_UID:-0}:${GDPR_GID:-0}"
     depends_on:
       template-ready: # change api name
